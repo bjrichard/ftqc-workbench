@@ -27,7 +27,7 @@ def test_gate_rejects_whitespace_only_name():
 
 def test_gate_rejects_non_string_name():
     """Verify that a non-string gate name is rejected."""
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Gate(name=234, arity=1)
 
 
@@ -45,7 +45,7 @@ def test_gate_rejects_zero_arity():
 
 def test_gate_rejects_non_integer_arity():
     """Verify that non-integer gate arity is rejected."""
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         Gate(name="X", arity=1.234)
 
 

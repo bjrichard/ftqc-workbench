@@ -31,13 +31,13 @@ class Gate:
     def __post_init__(self) -> None:
         """Validate gate invariants after dataclass initialization."""
         if not isinstance(self.name, str):
-            raise ValueError("Gate name must be a string.")
+            raise TypeError("Gate name must be a string.")
 
         if not self.name.strip():
             raise ValueError("Gate name must be non-empty.")
 
         if not isinstance(self.arity, int):
-            raise ValueError("Gate arity must be an integer.")
+            raise TypeError("Gate arity must be an integer.")
 
         if self.arity < 1:
             raise ValueError("Gate arity must be positive.")
