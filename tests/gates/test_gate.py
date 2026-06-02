@@ -59,6 +59,6 @@ def test_gate_is_immutable():
 
 def test_gate_imports_from_package():
     """Verify that Gate is exposed through the public gates package."""
-    g = Gate(name="X", arity=1)
+    from qc_compiler.gates import Gate as ImportedGate
 
-    assert g.name == "X"
+    assert ImportedGate is Gate
