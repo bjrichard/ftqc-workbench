@@ -57,7 +57,7 @@ def test_gate_is_immutable():
         g.name = "H"
 
 
-def test_imports_gate_from_package():
+def test_gate_imports_from_package():
     """Verify that Gate is exposed through the public gates package."""
     g = Gate(name="X", arity=1)
 
