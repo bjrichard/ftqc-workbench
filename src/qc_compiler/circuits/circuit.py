@@ -117,6 +117,38 @@ class Circuit:
         operation = Operation(gate=gate, qubits=qubits)
         return self.append(operation=operation)
 
+    def extend(self, operations: tuple[Operation, ...]) -> Circuit:
+        """Return a new circuit with multiple operations appended.
+
+        Parameters
+        ----------
+        operations : tuple[Operation, ...]
+            Operations to append to the circuit.
+
+        Returns
+        -------
+        Circuit
+            New circuit containing the existing operations followed by the
+            appended operations in order.
+
+        Raises
+        ------
+        TypeError
+            If ``operations`` is not a tuple.
+        TypeError
+            If any entry is not an Operation object.
+        ValueError
+            If any operation uses a qubit index outside the circuit.
+        """
+        if not isinstance(operations, tuple):
+            raise TypeError("operations must be a tuple.")
+
+        new_circuit = self
+        for operation in operations:
+            new_circuit = new_circuit.append(operation=operation)
+
+        return new_circuit
+
     def __len__(self) -> int:
         """Return the number of operations in the circuit.
 

@@ -95,6 +95,7 @@ def test_circuit_append_gate_rejects_out_of_range_qubits():
 def test_circuit_append_gate_rejects_non_tuple_qubits():
     """Verify that append_gate rejects non-tuple qubit inputs."""
     circuit = Circuit(num_qubits=2)
+
     with pytest.raises(TypeError):
         circuit.append_gate(gate=X, qubits=[0])
 
@@ -105,6 +106,56 @@ def test_circuit_append_gate_rejects_non_gate_input():
 
     with pytest.raises(TypeError):
         circuit.append_gate(gate="X", qubits=(0,))
+
+
+def test_circuit_extend_returns_new_circuit():
+    """Verify that extend returns a new circuit containing the added operations."""
+    circuit = Circuit(num_qubits=2)
+    new_circuit = circuit.extend((X_0, CNOT_0_1, X_0))
+
+    assert new_circuit is not circuit
+    assert new_circuit.operations == (X_0, CNOT_0_1, X_0)
+
+
+def test_circuit_extend_preserves_original_circuit():
+    """Verify that extend does not mutate the original circuit."""
+    circuit = Circuit(num_qubits=2)
+    circuit.extend((X_0, CNOT_0_1, X_0))
+
+    assert circuit.num_qubits == 2
+    assert circuit.operations == ()
+
+
+def test_circuit_extend_preserves_operation_order():
+    """Verify that extend preserves the order of appended operations."""
+    circuit = Circuit(num_qubits=2)
+    new_circuit = circuit.extend((X_0, CNOT_0_1, X_0))
+
+    assert new_circuit.operations == (X_0, CNOT_0_1, X_0)
+
+
+def test_circuit_extend_rejects_non_tuple_operations():
+    """Verify that extend rejects non-tuple operation inputs."""
+    circuit = Circuit(num_qubits=2)
+
+    with pytest.raises(TypeError):
+        circuit.extend([X_0, CNOT_0_1, X_0])
+
+
+def test_circuit_extend_rejects_non_operation_entries():
+    """Verify that extend rejects entries that are not Operation objects."""
+    circuit = Circuit(num_qubits=2)
+
+    with pytest.raises(TypeError):
+        circuit.extend(("X_0", CNOT_0_1, X_0))
+
+
+def test_circuit_extend_rejects_out_of_range_operation_qubits():
+    """Verify that extend rejects operations using qubits outside the circuit."""
+    circuit = Circuit(num_qubits=1)
+
+    with pytest.raises(ValueError):
+        circuit.extend((CNOT_0_1,))
 
 
 def test_circuit_rejects_out_of_range_operation_qubits():
