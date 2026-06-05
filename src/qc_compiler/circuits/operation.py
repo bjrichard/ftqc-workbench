@@ -10,8 +10,8 @@ class Operation:
     """Application of a logical gate to concrete qubit indices.
 
     An operation binds an abstract Gate to the specific qubit indices it
-    acts on inside a circuit. The order of qubit indices follows the gate
-    convention.
+    acts on inside a circuit. The order of qubit indices follows the
+    convention for the corresponding gate.
 
     Parameters
     ----------

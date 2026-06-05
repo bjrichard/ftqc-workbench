@@ -31,15 +31,15 @@ def test_primitive_gates_are_gate_objects():
 
 def test_primitive_gates_import_from_package():
     """Verify that primitive gates are exposed through the public gates package."""
-    from qc_compiler import gates
+    from qc_compiler import gates as gates_package
 
-    assert gates.I is I
-    assert gates.X is X
-    assert gates.Y is Y
-    assert gates.Z is Z
-    assert gates.H is H
-    assert gates.S is S
-    assert gates.T is T
-    assert gates.CNOT is CNOT
-    assert gates.CZ is CZ
-    assert gates.TOFFOLI is TOFFOLI
+    assert gates_package.I is I
+    assert gates_package.X is X
+    assert gates_package.Y is Y
+    assert gates_package.Z is Z
+    assert gates_package.H is H
+    assert gates_package.S is S
+    assert gates_package.T is T
+    assert gates_package.CNOT is CNOT
+    assert gates_package.CZ is CZ
+    assert gates_package.TOFFOLI is TOFFOLI

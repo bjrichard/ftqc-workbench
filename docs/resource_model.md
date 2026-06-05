@@ -2,7 +2,7 @@
 
 ## Status
 
-This document records the current logical resource-model assumptions for the fault-tolerant quantum computing workbench.
+This document records the current logical resource-model assumptions for the Fault-Tolerant Quantum Computing (FTQC) workbench.
 
 As of Week 1, the project has only implemented the basic circuit Intermediate Representation (IR). A circuit IR is the internal data model used to represent quantum circuits before later steps such as resource estimation, simulation, verification, or optimization.
 
@@ -14,36 +14,38 @@ Qubits are represented by zero-based integer indices.
 
 Examples:
 
-- qubit 0 is the first qubit
-- qubit 1 is the second qubit
-- a two-qubit circuit has valid qubit indices 0 and 1
+- qubit `0` is the first qubit
+- qubit `1` is the second qubit
+- a two-qubit circuit has valid qubit indices `0` and `1`
 
 The core circuit IR objects are:
 
-- Gate
-- Operation
-- Circuit
+- `Gate`
+- `Operation`
+- `Circuit`
 
-Gate represents an abstract reusable logical gate definition. It stores:
+`Gate` represents an abstract reusable logical gate definition. It stores:
 
-- name
-- arity
+- `name`
+- `arity`
 
-Operation binds a Gate to concrete qubit indices.
+`Operation` binds a `Gate` to concrete qubit indices.
 
 Example:
 
-python Operation(gate=CNOT, qubits=(0, 1))
+```python
+Operation(gate=CNOT, qubits=(0, 1))
+```
 
 For multi-qubit gates, qubit order follows the gate convention.
 
 Current conventions:
 
-- CNOT: (control, target)
-- CZ: (qubit_0, qubit_1)
-- TOFFOLI: (control_0, control_1, target)
+- `CNOT`: `(control, target)`
+- `CZ`: `(qubit_0, qubit_1)`
+- `TOFFOLI`: `(control_0, control_1, target)`
 
-Circuit stores:
+`Circuit` stores:
 
 - a fixed number of qubits
 - an ordered tuple of operations
@@ -56,16 +58,16 @@ The current primitive logical gate library contains:
 
 | Gate | Arity |
 |---|---:|
-| I | 1 |
-| X | 1 |
-| Y | 1 |
-| Z | 1 |
-| H | 1 |
-| S | 1 |
-| T | 1 |
-| CNOT | 2 |
-| CZ | 2 |
-| TOFFOLI | 3 |
+| `I` | 1 |
+| `X` | 1 |
+| `Y` | 1 |
+| `Z` | 1 |
+| `H` | 1 |
+| `S` | 1 |
+| `T` | 1 |
+| `CNOT` | 2 |
+| `CZ` | 2 |
+| `TOFFOLI` | 3 |
 
 ## Clifford+T assumptions
 
@@ -77,16 +79,16 @@ Expected future classification:
 
 | Gate | Expected class |
 |---|---|
-| I | Clifford |
-| X | Clifford |
-| Y | Clifford |
-| Z | Clifford |
-| H | Clifford |
-| S | Clifford |
-| CNOT | Clifford |
-| CZ | Clifford |
-| T | non-Clifford |
-| TOFFOLI | primitive placeholder; later decomposed or counted according to an explicit convention |
+| `I` | Clifford |
+| `X` | Clifford |
+| `Y` | Clifford |
+| `Z` | Clifford |
+| `H` | Clifford |
+| `S` | Clifford |
+| `CNOT` | Clifford |
+| `CZ` | Clifford |
+| `T` | non-Clifford |
+| `TOFFOLI` | primitive placeholder; later decomposed or counted according to an explicit convention |
 
 ## Resource counting status
 

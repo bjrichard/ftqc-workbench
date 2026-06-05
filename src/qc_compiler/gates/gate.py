@@ -19,7 +19,7 @@ class Gate:
 
     Raises
     ------
-    ValueError
+    TypeError
         If ``name`` is not a non-empty string.
     ValueError
         If ``arity`` is not a positive integer.

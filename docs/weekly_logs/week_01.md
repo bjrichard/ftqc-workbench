@@ -2,7 +2,7 @@
 
 ## Week 1 objective
 
-Build the first layer of the FTQC workbench: a minimal, well-tested circuit intermediate representation (IR) with explicit gate, operation, and circuit abstractions.
+Build the first layer of the Fault-Tolerant Quantum Computing (FTQC) workbench: a minimal, well-tested circuit Intermediate Representation (IR) with explicit gate, operation, and circuit abstractions.
 
 By the end of the week, the repo should support construction and inspection of simple circuits using immutable or immutable-like objects.
 
@@ -236,17 +236,36 @@ Suggested commit:
 test(circuits): stabilize basic circuit IR tests
 ```
 
-## End-of-week review
+## Final notes
 
-Answer these questions at the end of Week 1:
+- Implemented `Gate`, `Operation`, and `Circuit`.
+- Added primitive logical gate definitions.
+- Documented initial circuit Intermediate Representation (IR) and resource-model assumptions.
+- Confirmed public imports for `qc_compiler.gates` and `qc_compiler.circuits`.
+- Resource counting, matrices, simulation, verification, and optimization remain out of scope.
+
+## End-of-week review notes
 
 1. What was completed?
+   - `Gate`, `Operation`, `Circuit`, primitive logical gates, public imports, tests, and initial resource-model documentation.
+
 2. What is behind schedule?
+   - Nothing material.
+
 3. What should be cut?
+   - Nothing.
+
 4. What should move to backlog?
+   - No new items.
+
 5. What is next week’s main deliverable?
+   - Circuit construction helpers and additional gate/circuit polish, while keeping simulation and resource estimation out of scope.
+
 6. Did any result suggest a publishable angle?
+   - No. The project remains a portfolio/software-engineering foundation at this stage.
+
 7. Do any scope-cut triggers apply?
+   - No.
 
 ## Week 1 definition of done
 

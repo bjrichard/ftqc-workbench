@@ -3,11 +3,7 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 from qc_compiler.circuits import Operation
-from qc_compiler.gates import Gate
-
-
-X = Gate(name="X", arity=1)
-CNOT = Gate(name="CNOT", arity=2)
+from qc_compiler.gates import CNOT, X
 
 
 def test_operation_constructs_valid_operation():
