@@ -3,11 +3,8 @@ from dataclasses import FrozenInstanceError
 import pytest
 
 from qc_compiler.circuits import Circuit, Operation
-from qc_compiler.gates import Gate
+from qc_compiler.gates import CNOT, X
 
-
-X = Gate(name="X", arity=1)
-CNOT = Gate(name="CNOT", arity=2)
 
 X_0 = Operation(gate=X, qubits=(0,))
 CNOT_0_1 = Operation(gate=CNOT, qubits=(0, 1))
@@ -67,6 +64,47 @@ def test_circuit_append_preserves_original_circuit():
 
     assert circuit.num_qubits == 2
     assert circuit.operations == ()
+
+
+def test_circuit_append_gate_returns_new_circuit():
+    """Verify that append_gate returns a new circuit containing the added gate."""
+    circuit = Circuit(num_qubits=2)
+    new_circuit = circuit.append_gate(gate=X, qubits=(0,))
+
+    assert new_circuit is not circuit
+    assert new_circuit.operations == (Operation(gate=X, qubits=(0,)),)
+
+
+def test_circuit_append_gate_preserves_original_circuit():
+    """Verify that append_gate does not mutate the original circuit."""
+    circuit = Circuit(num_qubits=2)
+    circuit.append_gate(gate=X, qubits=(0,))
+
+    assert circuit.num_qubits == 2
+    assert circuit.operations == ()
+
+
+def test_circuit_append_gate_rejects_out_of_range_qubits():
+    """Verify that append_gate rejects qubits outside the circuit."""
+    circuit = Circuit(num_qubits=2)
+
+    with pytest.raises(ValueError):
+        circuit.append_gate(gate=X, qubits=(2,))
+
+
+def test_circuit_append_gate_rejects_non_tuple_qubits():
+    """Verify that append_gate rejects non-tuple qubit inputs."""
+    circuit = Circuit(num_qubits=2)
+    with pytest.raises(TypeError):
+        circuit.append_gate(gate=X, qubits=[0])
+
+
+def test_circuit_append_gate_rejects_non_gate_input():
+    """Verify that append_gate rejects inputs that cannot form an operation."""
+    circuit = Circuit(num_qubits=2)
+
+    with pytest.raises(TypeError):
+        circuit.append_gate(gate="X", qubits=(0,))
 
 
 def test_circuit_rejects_out_of_range_operation_qubits():

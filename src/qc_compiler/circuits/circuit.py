@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 
 from qc_compiler.circuits.operation import Operation
+from qc_compiler.gates import Gate
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,36 @@ class Circuit:
             num_qubits=self.num_qubits,
             operations=self.operations + (operation,),
         )
+
+    def append_gate(self, gate: Gate, qubits: tuple[int, ...]) -> Circuit:
+        """Return a new circuit with one gate applied to qubits.
+
+        Parameters
+        ----------
+        gate : Gate
+            Logical gate definition to apply.
+        qubits : tuple[int, ...]
+            Zero-based qubit indices the gate acts on.
+
+        Returns
+        -------
+        Circuit
+            New circuit containing the existing operations followed by the
+            new gate operation.
+
+        Raises
+        ------
+        TypeError
+            If ``gate`` is not a Gate object.
+        TypeError
+            If ``qubits`` is not a tuple or contains non-integer entries.
+        ValueError
+            If any qubit index is negative, duplicated, or outside the circuit.
+        ValueError
+            If the number of qubit indices does not match the gate arity.
+        """
+        operation = Operation(gate=gate, qubits=qubits)
+        return self.append(operation=operation)
 
     def __len__(self) -> int:
         """Return the number of operations in the circuit.
