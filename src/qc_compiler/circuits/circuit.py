@@ -143,7 +143,11 @@ class Circuit:
         if not isinstance(operations, tuple):
             raise TypeError("operations must be a tuple.")
 
-        new_circuit = self
+        new_circuit = Circuit(
+            num_qubits=self.num_qubits,
+            operations=self.operations,
+        )
+
         for operation in operations:
             new_circuit = new_circuit.append(operation=operation)
 

@@ -66,6 +66,14 @@ def test_circuit_append_preserves_original_circuit():
     assert circuit.operations == ()
 
 
+def test_circuit_append_rejects_non_operation():
+    """Verify that append rejects non-Operation inputs."""
+    circuit = Circuit(num_qubits=2)
+
+    with pytest.raises(TypeError):
+        circuit.append(operation="X")
+
+
 def test_circuit_append_gate_returns_new_circuit():
     """Verify that append_gate returns a new circuit containing the added gate."""
     circuit = Circuit(num_qubits=2)
@@ -100,8 +108,16 @@ def test_circuit_append_gate_rejects_non_tuple_qubits():
         circuit.append_gate(gate=X, qubits=[0])
 
 
+def test_circuit_append_gate_rejects_wrong_number_of_qubits():
+    """Verify that append_gate rejects qubit counts that do not match gate arity."""
+    circuit = Circuit(num_qubits=2)
+
+    with pytest.raises(ValueError):
+        circuit.append_gate(gate=CNOT, qubits=(0,))
+
+
 def test_circuit_append_gate_rejects_non_gate_input():
-    """Verify that append_gate rejects inputs that cannot form an operation."""
+    """Verify that append_gate rejects non-Gate inputs."""
     circuit = Circuit(num_qubits=2)
 
     with pytest.raises(TypeError):
@@ -156,6 +172,16 @@ def test_circuit_extend_rejects_out_of_range_operation_qubits():
 
     with pytest.raises(ValueError):
         circuit.extend((CNOT_0_1,))
+
+
+def test_circuit_extend_accepts_empty_tuple():
+    """Verify that extend accepts an empty tuple and returns an equivalent new circuit."""
+    circuit = Circuit(num_qubits=2)
+    new_circuit = circuit.extend(())
+
+    assert new_circuit is not circuit
+    assert new_circuit.num_qubits == 2
+    assert new_circuit.operations == ()
 
 
 def test_circuit_rejects_out_of_range_operation_qubits():
