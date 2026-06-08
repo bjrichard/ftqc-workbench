@@ -24,7 +24,7 @@ def test_resource_estimator_estimates_empty_circuit():
     assert estimate.cnot_count == 0
     assert estimate.cz_count == 0
     assert estimate.ancilla_count == 0
-    assert estimate.depth is None
+    assert estimate.depth == 0
 
 
 def test_resource_estimator_counts_total_gates():
@@ -62,11 +62,18 @@ def test_resource_estimator_sets_ancilla_count_to_zero():
     assert estimate.ancilla_count == 0
 
 
-def test_resource_estimator_leaves_depth_unset():
-    """Verify that depth is unset before a depth model is implemented."""
+def test_resource_estimator_estimates_empty_circuit_depth():
+    """Verify that an empty circuit has serial depth zero."""
+    estimate = ResourceEstimator().estimate(TRIVIAL_CIRCUIT)
+
+    assert estimate.depth == 0
+
+
+def test_resource_estimator_estimates_nonempty_circuit_serial_depth():
+    """Verify that serial depth equals the number of operations."""
     estimate = ResourceEstimator().estimate(NONTRIVIAL_CIRCUIT)
 
-    assert estimate.depth is None
+    assert estimate.depth == 4
 
 
 def test_resource_estimator_rejects_non_circuit_input():

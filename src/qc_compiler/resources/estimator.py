@@ -60,5 +60,5 @@ class ResourceEstimator:
             cnot_count=cnot_count,
             cz_count=cz_count,
             ancilla_count=0,
-            depth=None,
+            depth=gate_count,
         )
