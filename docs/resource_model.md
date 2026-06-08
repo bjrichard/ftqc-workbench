@@ -4,11 +4,25 @@
 
 This document records the current logical resource-model assumptions for the Fault-Tolerant Quantum Computing (FTQC) workbench.
 
-As of Week 1, the project has only implemented the basic circuit Intermediate Representation (IR). A circuit IR is the internal data model used to represent quantum circuits before later steps such as resource estimation, simulation, verification, or optimization.
+As of Week 3, the project has implemented:
 
-Resource counting begins in Week 3.
+- the basic circuit Intermediate Representation (IR)
+- primitive logical gate definitions
+- immutable circuit operations
+- immutable resource estimate objects
+- a basic logical resource estimator
+- total gate counting
+- T-gate counting
+- controlled-NOT (CNOT) gate counting
+- controlled-Z (CZ) gate counting
+- an ancilla-count convention
+- a serial circuit depth estimate
 
-## Circuit IR conventions
+The current estimates are logical bookkeeping estimates. They are not physical resource estimates and should not be interpreted as surface-code cost estimates, hardware runtime estimates, or practical fault-tolerant execution estimates.
+
+## Circuit Intermediate Representation conventions
+
+The circuit Intermediate Representation (IR) is the internal data model used to represent quantum circuits before later steps such as resource estimation, simulation, verification, compilation, optimization, or hardware mapping.
 
 Qubits are represented by zero-based integer indices.
 
@@ -18,7 +32,7 @@ Examples:
 - qubit `1` is the second qubit
 - a two-qubit circuit has valid qubit indices `0` and `1`
 
-The core circuit IR objects are:
+The core circuit Intermediate Representation (IR) objects are:
 
 - `Gate`
 - `Operation`
@@ -41,9 +55,9 @@ For multi-qubit gates, qubit order follows the gate convention.
 
 Current conventions:
 
-- `CNOT`: `(control, target)`
-- `CZ`: `(qubit_0, qubit_1)`
-- `TOFFOLI`: `(control_0, control_1, target)`
+- controlled-NOT (CNOT): `(control, target)`
+- controlled-Z (CZ): `(qubit_0, qubit_1)`
+- Toffoli gate (`TOFFOLI`): `(control_0, control_1, target)`
 
 `Circuit` stores:
 
@@ -90,59 +104,197 @@ Expected future classification:
 | `T` | non-Clifford |
 | `TOFFOLI` | primitive placeholder; later decomposed or counted according to an explicit convention |
 
-## Resource counting status
+## Current resource estimate object
 
-Resource counting is not implemented in Week 1.
+Resource estimates are represented by `ResourceEstimate`.
 
-Week 3 will define and test:
+A `ResourceEstimate` stores scalar logical resource counts:
 
-- gate count
-- T-count
-- controlled-NOT and controlled-Z count
-- simple depth estimate
-- ancilla-count convention
+- `gate_count`
+- `t_count`
+- `cnot_count`
+- `cz_count`
+- `ancilla_count`
+- `depth`
 
-Until Week 3, no code should claim to produce resource estimates.
+The estimate object is immutable after construction.
 
-## Current out-of-scope assumptions
+## Current resource estimator
 
-The current implementation does not model:
+Logical resource estimates are computed by `ResourceEstimator`.
 
-- gate matrices
-- exact simulation
-- unitary equivalence
-- reversible truth-table verification
-- measurements
-- feedforward
-- classical control
-- connectivity
-- routing
-- swap-gate overhead
-- physical qubits
-- surface-code costs
-- magic-state factories
-- T-depth
+The current estimator accepts a `Circuit` and returns a `ResourceEstimate`.
+
+Example:
+
+```python
+estimate = ResourceEstimator().estimate(circuit)
+```
+
+The estimator currently computes:
+
+- total gate count
+- T-gate count
+- controlled-NOT (CNOT) gate count
+- controlled-Z (CZ) gate count
+- ancilla count
+- serial circuit depth
+
+The estimator does not yet model decomposition, routing, scheduling, parallel execution, measurement, feedforward, noise, or physical fault-tolerant overhead.
+
+## Resource fields
+
+### `gate_count`
+
+`gate_count` is the total number of operations in the circuit.
+
+Current rule:
+
+```python
+gate_count = len(circuit)
+```
+
+Each operation contributes one gate to the total count.
+
+### `t_count`
+
+`t_count` is the number of operations whose gate is the primitive `T` gate.
+
+Current rule:
+
+```python
+t_count = number of operations where operation.gate == T
+```
+
+This is a logical T-count only. It does not yet include T gates introduced by decompositions.
+
+### `cnot_count`
+
+`cnot_count` is the number of operations whose gate is the primitive controlled-NOT (CNOT) gate.
+
+Current rule:
+
+```python
+cnot_count = number of operations where operation.gate == CNOT
+```
+
+This is a logical controlled-NOT (CNOT) count only. It does not yet include controlled-NOT (CNOT) gates introduced by routing, decomposition, or compilation passes.
+
+### `cz_count`
+
+`cz_count` is the number of operations whose gate is the primitive controlled-Z (CZ) gate.
+
+Current rule:
+
+```python
+cz_count = number of operations where operation.gate == CZ
+```
+
+This is a logical controlled-Z (CZ) count only. It does not yet include controlled-Z (CZ) gates introduced by routing, decomposition, or compilation passes.
+
+### `ancilla_count`
+
+`ancilla_count` is currently set to zero.
+
+Current rule:
+
+```python
+ancilla_count = 0
+```
+
+This is not a claim that fault-tolerant implementations require no ancillas. It means the current estimator does not yet model decompositions, workspace allocation, syndrome extraction, magic-state factories, or any other process that would introduce auxiliary qubits.
+
+Future ancilla conventions must distinguish clean ancillas from dirty ancillas before nonzero ancilla estimates are introduced.
+
+### `depth`
+
+`depth` is currently a serial circuit depth estimate.
+
+Current rule:
+
+```python
+depth = len(circuit)
+```
+
+Each operation contributes one sequential layer.
+
+This is not parallelized circuit depth. The estimator does not yet detect gates that can run simultaneously on disjoint qubits.
+
+## Example: empty circuit
+
+For an empty two-qubit circuit:
+
+```python
+circuit = Circuit(num_qubits=2)
+estimate = ResourceEstimator().estimate(circuit)
+```
+
+The expected estimate is:
+
+```python
+ResourceEstimate(
+    gate_count=0,
+    t_count=0,
+    cnot_count=0,
+    cz_count=0,
+    ancilla_count=0,
+    depth=0,
+)
+```
+
+## Example: non-empty circuit
+
+For the circuit:
+
+```python
+circuit = (
+    Circuit(num_qubits=2)
+    .append_gate(gate=T, qubits=(0,))
+    .append_gate(gate=CNOT, qubits=(0, 1))
+    .append_gate(gate=CZ, qubits=(0, 1))
+    .append_gate(gate=X, qubits=(1,))
+)
+```
+
+The expected estimate is:
+
+```python
+ResourceEstimate(
+    gate_count=4,
+    t_count=1,
+    cnot_count=1,
+    cz_count=1,
+    ancilla_count=0,
+    depth=4,
+)
+```
 
 ## Connectivity and routing
 
-Connectivity is ignored in the first implementation.
+Connectivity is ignored in the current implementation.
 
-Operations may act on any valid qubit indices in the circuit. No hardware topology, routing, or nearest-neighbor constraint is currently modeled.
+Operations may act on any valid qubit indices in the circuit. No hardware topology, routing, nearest-neighbor constraint, swap insertion, or movement cost is currently modeled.
 
 ## Measurement and feedforward
 
 Measurements and feedforward are out of scope unless explicitly promoted later.
 
-The current circuit IR represents unitary logical operations only.
+The current circuit Intermediate Representation (IR) represents unitary logical operations only.
 
 ## Ancilla convention
 
-Ancilla accounting is not implemented yet.
+Ancilla accounting is currently implemented as a placeholder convention:
+
+```python
+ancilla_count = 0
+```
 
 Default future assumption:
 
-- count clean ancillae only
+- count clean ancillas only
 - document any dirty-ancilla convention explicitly before using it
+- distinguish logical ancillas from physical qubits
+- distinguish circuit-level workspace from fault-tolerant syndrome-extraction resources
 
 ## Global phase
 
@@ -153,3 +305,57 @@ Expected future convention:
 - global phase is ignored for unitary equivalence checks
 
 This convention must be tested and documented when equivalence checking is implemented.
+
+## Explicit non-goals
+
+The current resource model does not estimate:
+
+- physical qubit count
+- logical qubit count beyond circuit width
+- surface-code distance
+- code cycles
+- magic-state factory footprint
+- magic-state factory throughput
+- distillation cost
+- measurement cost
+- feedforward latency
+- routing overhead
+- swap overhead
+- hardware topology constraints
+- crosstalk
+- calibration-dependent performance
+- noise-aware resource costs
+- wall-clock runtime
+- parallelized circuit depth
+- scheduled depth
+- T-depth
+- Toffoli decomposition cost
+- arbitrary gate synthesis cost
+
+## Interpretation
+
+The current estimates are logical bookkeeping estimates, not fault-tolerant resource estimates.
+
+They are useful for checking that the circuit Intermediate Representation (IR), primitive gate definitions, and estimator plumbing work correctly.
+
+They are not yet sufficient for:
+
+- comparing fault-tolerant architectures
+- estimating hardware requirements
+- estimating physical qubit counts
+- estimating surface-code overhead
+- estimating magic-state factory cost
+- estimating execution time
+- making claims about practical quantum advantage
+
+## Near-term extensions
+
+Likely next extensions include:
+
+- logical qubit count
+- parallelized depth
+- Clifford+T decomposition counting
+- T-depth
+- simple routing-aware estimates
+- primitive pass-based resource estimation
+- resource estimates before and after compilation passes
