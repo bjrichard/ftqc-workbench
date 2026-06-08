@@ -4,7 +4,7 @@
 
 Build the first layer of the resource estimation system: immutable resource estimate objects and a simple logical resource estimator for circuit-level counts.
 
-By the end of the week, the repo should support basic resource estimates for circuits, including total gate count, T-count, controlled-NOT count, controlled-Z count, ancilla count, and a simple serial depth estimate.
+By the end of the week, the repo supports basic logical resource estimates for circuits, including total gate count, T-count, controlled-NOT count, controlled-Z count, ancilla count, and a simple serial depth estimate.
 
 ## Scope for this week
 
@@ -33,25 +33,29 @@ Out of scope:
 - noise-aware resource estimates
 - fault-tolerant decomposition
 
-## Design decisions
-
-- ResourceEstimate represents an immutable result object.
-- ResourceEstimator represents the computation that produces a ResourceEstimate from a Circuit.
-- Total gate count is defined as the number of operations in the circuit.
-- T-count counts operations whose gate is the primitive T gate.
-- Controlled-NOT count counts operations whose gate is the primitive controlled-NOT gate.
-- Controlled-Z count counts operations whose gate is the primitive controlled-Z gate.
-- Ancilla count is set to 0 until the project introduces decompositions, workspace allocation, or fault-tolerant resource models.
-- Depth is initially modeled as serial depth, where each operation contributes one layer.
-- Serial depth is not parallelized circuit depth.
-
-## Daily plan
+## Completed work
 
 ### Day 1 — ResourceEstimate model
 
-Add an immutable ResourceEstimate object with validation for nonnegative integer resource counts.
+Implemented an immutable `ResourceEstimate` object for scalar logical resource counts.
 
-Expected commit:
+The model validates:
+
+- total gate count
+- T-count
+- controlled-NOT count
+- controlled-Z count
+- ancilla count
+- optional depth
+
+Validation rejects:
+
+- non-integer counts
+- negative counts
+- non-integer depth values
+- negative depth values
+
+Completed commit:
 
 ```bash
 feat(resources): add resource estimate model
@@ -59,9 +63,21 @@ feat(resources): add resource estimate model
 
 ### Day 2 — ResourceEstimator gate counts
 
-Add a ResourceEstimator object that computes logical gate counts from a Circuit.
+Implemented `ResourceEstimator` as the computation object that estimates logical resources from a `Circuit`.
 
-Expected commit:
+The estimator currently counts:
+
+- total gates
+- T gates
+- controlled-NOT gates
+- controlled-Z gates
+
+It also sets:
+
+- `ancilla_count = 0`
+- `depth = None` before the serial depth model was added
+
+Completed commit:
 
 ```bash
 feat(resources): add logical resource estimator
@@ -69,9 +85,19 @@ feat(resources): add logical resource estimator
 
 ### Day 3 — Serial circuit depth
 
-Add a simple serial depth estimate equal to the number of operations in the circuit.
+Updated `ResourceEstimator` so `depth` is a serial circuit depth estimate.
 
-Expected commit:
+Current rule:
+
+```python
+depth = len(circuit)
+```
+
+This means each operation contributes one sequential layer.
+
+This is not parallelized circuit depth.
+
+Completed commit:
 
 ```bash
 feat(resources): add serial circuit depth estimate
@@ -79,9 +105,22 @@ feat(resources): add serial circuit depth estimate
 
 ### Day 4 — Resource model documentation
 
-Document the Week 3 resource model, including what is counted, what is assumed, and what is explicitly out of scope.
+Updated `docs/resource_model.md` to define the Week 3 logical resource model.
 
-Expected commit:
+The documentation now explains:
+
+- current circuit Intermediate Representation conventions
+- primitive logical gate assumptions
+- logical resource fields
+- total gate count
+- T-count
+- controlled-NOT count
+- controlled-Z count
+- ancilla-count convention
+- serial depth convention
+- current non-goals and limitations
+
+Completed commit:
 
 ```bash
 docs(resources): define week 3 resource model
@@ -89,7 +128,9 @@ docs(resources): define week 3 resource model
 
 ### Day 5 — Week 3 cleanup and completion log
 
-Review tests, documentation, and public imports. Finalize the Week 3 log.
+Reviewed resource package structure, tests, documentation, and public imports.
+
+Completed this Week 3 log.
 
 Expected commit:
 
@@ -97,14 +138,93 @@ Expected commit:
 docs(plan): add week 3 completion log
 ```
 
+## Current package state
+
+The resource package now exposes:
+
+```python
+from qc_compiler.resources import ResourceEstimate, ResourceEstimator
+```
+
+`ResourceEstimate` is the immutable result object.
+
+`ResourceEstimator` is the service object that computes a `ResourceEstimate` from a `Circuit`.
+
+## Current estimator behavior
+
+For a circuit with `n` operations:
+
+```python
+gate_count = n
+depth = n
+```
+
+For primitive logical gates:
+
+```python
+t_count = number of T operations
+cnot_count = number of controlled-NOT operations
+cz_count = number of controlled-Z operations
+```
+
+Current ancilla convention:
+
+```python
+ancilla_count = 0
+```
+
+## Important limitations
+
+The Week 3 estimator is a logical bookkeeping estimator only.
+
+It does not estimate:
+
+- physical qubits
+- surface-code distance
+- magic-state factories
+- distillation cost
+- physical runtime
+- routing overhead
+- swap overhead
+- scheduled depth
+- parallelized depth
+- T-depth
+- measurement cost
+- feedforward latency
+- noise-aware cost
+
+## Tests added or updated
+
+Week 3 added tests for:
+
+- valid `ResourceEstimate` construction
+- invalid count types
+- negative counts
+- optional depth validation
+- immutability
+- public package imports
+- empty circuit estimates
+- non-empty circuit gate counts
+- T-count
+- controlled-NOT count
+- controlled-Z count
+- ancilla-count convention
+- serial depth
+- non-Circuit input rejection
+
 ## Completion criteria
 
-Week 3 is complete when:
+Week 3 is complete because:
 
-- ResourceEstimate is implemented and tested.
-- ResourceEstimator is implemented and tested.
+- `ResourceEstimate` is implemented and tested.
+- `ResourceEstimator` is implemented and tested.
 - The estimator returns logical gate counts.
 - The estimator returns serial circuit depth.
 - Resource model assumptions are documented.
+- Public resource imports work.
 - The full test suite passes.
 - Week 3 changes are committed and pushed.
+
+## Week 3 result
+
+Week 3 successfully added the first usable logical resource estimation layer to the Fault-Tolerant Quantum Computing (FTQC) workbench.
