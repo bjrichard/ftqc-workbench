@@ -59,6 +59,7 @@ class ResourceEstimator:
             t_count=t_count,
             cnot_count=cnot_count,
             cz_count=cz_count,
+            logical_qubit_count=circuit.num_qubits,
             ancilla_count=0,
             depth=gate_count,
         )

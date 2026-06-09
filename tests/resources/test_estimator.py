@@ -23,6 +23,7 @@ def test_resource_estimator_estimates_empty_circuit():
     assert estimate.t_count == 0
     assert estimate.cnot_count == 0
     assert estimate.cz_count == 0
+    assert estimate.logical_qubit_count == 2
     assert estimate.ancilla_count == 0
     assert estimate.depth == 0
 
@@ -53,6 +54,13 @@ def test_resource_estimator_counts_cz_gates():
     estimate = ResourceEstimator().estimate(NONTRIVIAL_CIRCUIT)
 
     assert estimate.cz_count == 1
+
+
+def test_resource_estimator_counts_logical_qubits():
+    """Verify that logical qubit count equals the circuit width."""
+    estimate = ResourceEstimator().estimate(NONTRIVIAL_CIRCUIT)
+
+    assert estimate.logical_qubit_count == 2
 
 
 def test_resource_estimator_sets_ancilla_count_to_zero():

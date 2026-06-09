@@ -12,6 +12,7 @@ def test_resource_estimate_constructs_valid_estimate():
         t_count=1,
         cnot_count=1,
         cz_count=0,
+        logical_qubit_count=2,
         ancilla_count=0,
         depth=3,
     )
@@ -20,6 +21,7 @@ def test_resource_estimate_constructs_valid_estimate():
     assert estimate.t_count == 1
     assert estimate.cnot_count == 1
     assert estimate.cz_count == 0
+    assert estimate.logical_qubit_count == 2
     assert estimate.ancilla_count == 0
     assert estimate.depth == 3
 
@@ -31,6 +33,7 @@ def test_resource_estimate_allows_none_depth():
         t_count=0,
         cnot_count=0,
         cz_count=0,
+        logical_qubit_count=0,
         ancilla_count=0,
         depth=None,
     )
@@ -41,25 +44,61 @@ def test_resource_estimate_allows_none_depth():
 def test_resource_estimate_rejects_non_integer_gate_count():
     """Verify that total gate count must be an integer."""
     with pytest.raises(TypeError):
-        ResourceEstimate(gate_count=1.5, t_count=0, cnot_count=0, cz_count=0)
+        ResourceEstimate(
+            gate_count=1.5,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=0,
+        )
 
 
 def test_resource_estimate_rejects_non_integer_t_count():
     """Verify that T-count must be an integer."""
     with pytest.raises(TypeError):
-        ResourceEstimate(gate_count=0, t_count=1.5, cnot_count=0, cz_count=0)
+        ResourceEstimate(
+            gate_count=0,
+            t_count=1.5,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=0,
+        )
 
 
 def test_resource_estimate_rejects_non_integer_cnot_count():
     """Verify that controlled-NOT count must be an integer."""
     with pytest.raises(TypeError):
-        ResourceEstimate(gate_count=0, t_count=0, cnot_count=1.5, cz_count=0)
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=1.5,
+            cz_count=0,
+            logical_qubit_count=0,
+        )
 
 
 def test_resource_estimate_rejects_non_integer_cz_count():
     """Verify that controlled-Z count must be an integer."""
     with pytest.raises(TypeError):
-        ResourceEstimate(gate_count=0, t_count=0, cnot_count=0, cz_count=1.5)
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=1.5,
+            logical_qubit_count=0,
+        )
+
+
+def test_resource_estimate_rejects_non_integer_logical_qubit_count():
+    """Verify that logical qubit count must be an integer."""
+    with pytest.raises(TypeError):
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=1.5,
+        )
 
 
 def test_resource_estimate_rejects_non_integer_ancilla_count():
@@ -70,6 +109,7 @@ def test_resource_estimate_rejects_non_integer_ancilla_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            logical_qubit_count=0,
             ancilla_count=1.5,
         )
 
@@ -82,6 +122,7 @@ def test_resource_estimate_rejects_non_integer_depth():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            logical_qubit_count=0,
             depth=1.5,
         )
 
@@ -89,25 +130,61 @@ def test_resource_estimate_rejects_non_integer_depth():
 def test_resource_estimate_rejects_negative_gate_count():
     """Verify that negative total gate counts are rejected."""
     with pytest.raises(ValueError):
-        ResourceEstimate(gate_count=-1, t_count=0, cnot_count=0, cz_count=0)
+        ResourceEstimate(
+            gate_count=-1,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=0,
+        )
 
 
 def test_resource_estimate_rejects_negative_t_count():
     """Verify that negative T-counts are rejected."""
     with pytest.raises(ValueError):
-        ResourceEstimate(gate_count=0, t_count=-1, cnot_count=0, cz_count=0)
+        ResourceEstimate(
+            gate_count=0,
+            t_count=-1,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=0,
+        )
 
 
 def test_resource_estimate_rejects_negative_cnot_count():
     """Verify that negative controlled-NOT counts are rejected."""
     with pytest.raises(ValueError):
-        ResourceEstimate(gate_count=0, t_count=0, cnot_count=-1, cz_count=0)
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=-1,
+            cz_count=0,
+            logical_qubit_count=0,
+        )
 
 
 def test_resource_estimate_rejects_negative_cz_count():
     """Verify that negative controlled-Z counts are rejected."""
     with pytest.raises(ValueError):
-        ResourceEstimate(gate_count=0, t_count=0, cnot_count=0, cz_count=-1)
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=-1,
+            logical_qubit_count=0,
+        )
+
+
+def test_resource_estimate_rejects_negative_logical_qubit_count():
+    """Verify that negative logical qubit counts are rejected."""
+    with pytest.raises(ValueError):
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=-1,
+        )
 
 
 def test_resource_estimate_rejects_negative_ancilla_count():
@@ -118,6 +195,7 @@ def test_resource_estimate_rejects_negative_ancilla_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            logical_qubit_count=0,
             ancilla_count=-1,
         )
 
@@ -130,6 +208,7 @@ def test_resource_estimate_rejects_negative_depth():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            logical_qubit_count=0,
             depth=-1,
         )
 
@@ -141,6 +220,7 @@ def test_resource_estimate_is_immutable():
         t_count=1,
         cnot_count=1,
         cz_count=0,
+        logical_qubit_count=2,
         ancilla_count=0,
         depth=3,
     )

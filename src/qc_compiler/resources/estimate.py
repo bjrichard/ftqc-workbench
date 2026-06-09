@@ -21,6 +21,8 @@ class ResourceEstimate:
         Number of controlled-NOT gates.
     cz_count : int
         Number of controlled-Z gates.
+    logical_qubit_count : int
+        Number of logical qubits represented by the circuit.
     ancilla_count : int
         Number of ancilla qubits required by the estimate.
     depth : int | None
@@ -42,6 +44,7 @@ class ResourceEstimate:
     t_count: int
     cnot_count: int
     cz_count: int
+    logical_qubit_count: int
     ancilla_count: int = 0
     depth: int | None = None
 
@@ -51,6 +54,9 @@ class ResourceEstimate:
         self._validate_nonnegative_integer("t_count", self.t_count)
         self._validate_nonnegative_integer("cnot_count", self.cnot_count)
         self._validate_nonnegative_integer("cz_count", self.cz_count)
+        self._validate_nonnegative_integer(
+            "logical_qubit_count", self.logical_qubit_count
+        )
         self._validate_nonnegative_integer("ancilla_count", self.ancilla_count)
 
         if self.depth is not None:
