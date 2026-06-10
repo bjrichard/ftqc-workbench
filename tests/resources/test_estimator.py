@@ -1,7 +1,7 @@
 import pytest
 
 from qc_compiler.circuits import Circuit
-from qc_compiler.gates import CNOT, CZ, T, X
+from qc_compiler.gates import CNOT, CZ, T, X, Z
 from qc_compiler.resources import ResourceEstimator
 
 
@@ -12,6 +12,12 @@ NONTRIVIAL_CIRCUIT = (
     .append_gate(gate=CNOT, qubits=(0, 1))
     .append_gate(gate=CZ, qubits=(0, 1))
     .append_gate(gate=X, qubits=(1,))
+)
+PARALLELIZABLE_CIRCUIT = (
+    Circuit(num_qubits=2)
+    .append_gate(gate=X, qubits=(0,))
+    .append_gate(gate=Z, qubits=(1,))
+    .append_gate(gate=CNOT, qubits=(0, 1))
 )
 
 
@@ -26,6 +32,7 @@ def test_resource_estimator_estimates_empty_circuit():
     assert estimate.logical_qubit_count == 2
     assert estimate.ancilla_count == 0
     assert estimate.depth == 0
+    assert estimate.parallel_depth == 0
 
 
 def test_resource_estimator_counts_total_gates():
@@ -82,6 +89,21 @@ def test_resource_estimator_estimates_nonempty_circuit_serial_depth():
     estimate = ResourceEstimator().estimate(NONTRIVIAL_CIRCUIT)
 
     assert estimate.depth == 4
+
+
+def test_resource_estimator_estimates_empty_circuit_parallel_depth():
+    """Verify that an empty circuit has parallelized depth zero."""
+    estimate = ResourceEstimator().estimate(TRIVIAL_CIRCUIT)
+
+    assert estimate.parallel_depth == 0
+
+
+def test_resource_estimator_estimates_parallel_depth():
+    """Verify that the estimator reports greedy parallelized depth."""
+    estimate = ResourceEstimator().estimate(PARALLELIZABLE_CIRCUIT)
+
+    assert estimate.depth == 3
+    assert estimate.parallel_depth == 2
 
 
 def test_resource_estimator_rejects_non_circuit_input():

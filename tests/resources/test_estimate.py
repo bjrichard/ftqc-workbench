@@ -15,6 +15,7 @@ def test_resource_estimate_constructs_valid_estimate():
         logical_qubit_count=2,
         ancilla_count=0,
         depth=3,
+        parallel_depth=2,
     )
 
     assert estimate.gate_count == 3
@@ -24,6 +25,7 @@ def test_resource_estimate_constructs_valid_estimate():
     assert estimate.logical_qubit_count == 2
     assert estimate.ancilla_count == 0
     assert estimate.depth == 3
+    assert estimate.parallel_depth == 2
 
 
 def test_resource_estimate_allows_none_depth():
@@ -39,6 +41,21 @@ def test_resource_estimate_allows_none_depth():
     )
 
     assert estimate.depth is None
+
+
+def test_resource_estimate_allows_none_parallel_depth():
+    """Verify that parallel depth may be omitted when no parallel model has been applied."""
+    estimate = ResourceEstimate(
+        gate_count=0,
+        t_count=0,
+        cnot_count=0,
+        cz_count=0,
+        logical_qubit_count=0,
+        ancilla_count=0,
+        parallel_depth=None,
+    )
+
+    assert estimate.parallel_depth is None
 
 
 def test_resource_estimate_rejects_non_integer_gate_count():
@@ -124,6 +141,19 @@ def test_resource_estimate_rejects_non_integer_depth():
             cz_count=0,
             logical_qubit_count=0,
             depth=1.5,
+        )
+
+
+def test_resource_estimate_rejects_non_integer_parallel_depth():
+    """Verify that parallel depth must be an integer or None."""
+    with pytest.raises(TypeError):
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=0,
+            parallel_depth=1.5,
         )
 
 
@@ -213,6 +243,19 @@ def test_resource_estimate_rejects_negative_depth():
         )
 
 
+def test_resource_estimate_rejects_negative_parallel_depth():
+    """Verify that negative parallel depth estimates are rejected."""
+    with pytest.raises(ValueError):
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            logical_qubit_count=0,
+            parallel_depth=-1,
+        )
+
+
 def test_resource_estimate_is_immutable():
     """Verify that resource estimates cannot be modified after construction."""
     estimate = ResourceEstimate(
@@ -223,6 +266,7 @@ def test_resource_estimate_is_immutable():
         logical_qubit_count=2,
         ancilla_count=0,
         depth=3,
+        parallel_depth=2,
     )
 
     with pytest.raises(FrozenInstanceError):

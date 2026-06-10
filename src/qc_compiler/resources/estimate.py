@@ -26,18 +26,22 @@ class ResourceEstimate:
     ancilla_count : int
         Number of ancilla qubits required by the estimate.
     depth : int | None
-        Estimated circuit depth, or None if no depth model has been applied.
+        Serial circuit depth estimate, or None if no serial depth model has
+        been applied.
+    parallel_depth : int | None
+        Parallelized circuit depth estimate, or None if no parallel depth model
+        has been applied.
 
     Raises
     ------
     TypeError
         If any count is not an integer.
     TypeError
-        If ``depth`` is neither an integer nor None.
+        If ``depth`` or ``parallel_depth`` is neither an integer nor None.
     ValueError
         If any count is negative.
     ValueError
-        If ``depth`` is negative.
+        If ``depth`` or ``parallel_depth`` is negative.
     """
 
     gate_count: int
@@ -47,6 +51,7 @@ class ResourceEstimate:
     logical_qubit_count: int
     ancilla_count: int = 0
     depth: int | None = None
+    parallel_depth: int | None = None
 
     def __post_init__(self) -> None:
         """Validate resource estimate invariants after dataclass initialization."""
@@ -61,6 +66,11 @@ class ResourceEstimate:
 
         if self.depth is not None:
             self._validate_nonnegative_integer("depth", self.depth)
+
+        if self.parallel_depth is not None:
+            self._validate_nonnegative_integer(
+                "parallel_depth", self.parallel_depth
+            )
 
     @staticmethod
     def _validate_nonnegative_integer(name: str, value: int) -> None:
