@@ -4,7 +4,7 @@
 
 This document records the current logical resource-model assumptions for the Fault-Tolerant Quantum Computing (FTQC) workbench.
 
-As of Week 3, the project has implemented:
+As of Week 4, the project has implemented:
 
 - the basic circuit Intermediate Representation (IR)
 - primitive logical gate definitions
@@ -15,8 +15,10 @@ As of Week 3, the project has implemented:
 - T-gate counting
 - controlled-NOT (CNOT) gate counting
 - controlled-Z (CZ) gate counting
+- logical qubit counting
 - an ancilla-count convention
 - a serial circuit depth estimate
+- a greedy order-preserving parallelized circuit depth estimate
 
 The current estimates are logical bookkeeping estimates. They are not physical resource estimates and should not be interpreted as surface-code cost estimates, hardware runtime estimates, or practical fault-tolerant execution estimates.
 
@@ -114,8 +116,10 @@ A `ResourceEstimate` stores scalar logical resource counts:
 - `t_count`
 - `cnot_count`
 - `cz_count`
+- `logical_qubit_count`
 - `ancilla_count`
 - `depth`
+- `parallel_depth`
 
 The estimate object is immutable after construction.
 
@@ -137,10 +141,12 @@ The estimator currently computes:
 - T-gate count
 - controlled-NOT (CNOT) gate count
 - controlled-Z (CZ) gate count
+- logical qubit count
 - ancilla count
 - serial circuit depth
+- greedy order-preserving parallelized circuit depth
 
-The estimator does not yet model decomposition, routing, scheduling, parallel execution, measurement, feedforward, noise, or physical fault-tolerant overhead.
+The estimator does not yet model decomposition, routing, scheduling, gate commutation, global depth optimization, measurement, feedforward, noise, or physical fault-tolerant overhead.
 
 ## Resource fields
 
@@ -192,6 +198,18 @@ cz_count = number of operations where operation.gate == CZ
 
 This is a logical controlled-Z (CZ) count only. It does not yet include controlled-Z (CZ) gates introduced by routing, decomposition, or compilation passes.
 
+### `logical_qubit_count`
+
+`logical_qubit_count` is the number of logical qubit slots represented by the circuit.
+
+Current rule:
+
+```python
+logical_qubit_count = circuit.num_qubits
+```
+
+This is a logical circuit-width estimate only. It is not a physical qubit estimate and does not include ancillas, syndrome-extraction qubits, routing resources, or magic-state factory qubits.
+
 ### `ancilla_count`
 
 `ancilla_count` is currently set to zero.
@@ -218,7 +236,43 @@ depth = len(circuit)
 
 Each operation contributes one sequential layer.
 
-This is not parallelized circuit depth. The estimator does not yet detect gates that can run simultaneously on disjoint qubits.
+This is not parallelized circuit depth.
+
+### `parallel_depth`
+
+`parallel_depth` is currently a greedy order-preserving parallelized circuit depth estimate.
+
+Current rule:
+
+```python
+parallel_depth = estimate_parallel_depth(circuit)
+```
+
+The helper function `estimate_parallel_depth` loops through operations in circuit order and places each operation into the earliest existing layer whose occupied qubits do not overlap with the operation's qubits. If no compatible layer exists, it creates a new layer.
+
+This model allows operations on disjoint qubits to share a layer.
+
+Example:
+
+```python
+circuit = (
+    Circuit(num_qubits=2)
+    .append_gate(gate=X, qubits=(0,))
+    .append_gate(gate=Z, qubits=(1,))
+    .append_gate(gate=CNOT, qubits=(0, 1))
+)
+```
+
+For this circuit:
+
+```python
+depth = 3
+parallel_depth = 2
+```
+
+The first two single-qubit operations can share one parallel layer. The controlled-NOT (CNOT) operation must occupy a later layer because it touches both qubits.
+
+This is not a globally optimized scheduler. It does not commute gates, cancel gates, reorder operations, insert swaps, account for hardware topology, or optimize across alternative valid circuit representations.
 
 ## Example: empty circuit
 
@@ -237,8 +291,10 @@ ResourceEstimate(
     t_count=0,
     cnot_count=0,
     cz_count=0,
+    logical_qubit_count=2,
     ancilla_count=0,
     depth=0,
+    parallel_depth=0,
 )
 ```
 
@@ -264,10 +320,14 @@ ResourceEstimate(
     t_count=1,
     cnot_count=1,
     cz_count=1,
+    logical_qubit_count=2,
     ancilla_count=0,
     depth=4,
+    parallel_depth=3,
 )
 ```
+
+The serial depth is four because the circuit has four operations. The parallelized depth is three because the first `T` operation on qubit `0` and the final `X` operation on qubit `1` can occupy the same parallel layer under the current greedy order-preserving model.
 
 ## Connectivity and routing
 
@@ -311,7 +371,6 @@ This convention must be tested and documented when equivalence checking is imple
 The current resource model does not estimate:
 
 - physical qubit count
-- logical qubit count beyond circuit width
 - surface-code distance
 - code cycles
 - magic-state factory footprint
@@ -326,11 +385,14 @@ The current resource model does not estimate:
 - calibration-dependent performance
 - noise-aware resource costs
 - wall-clock runtime
-- parallelized circuit depth
 - scheduled depth
 - T-depth
 - Toffoli decomposition cost
 - arbitrary gate synthesis cost
+- gate commutation analysis
+- global circuit rescheduling
+- optimal depth under arbitrary circuit rewrites
+- hardware-aware scheduling
 
 ## Interpretation
 
@@ -352,10 +414,10 @@ They are not yet sufficient for:
 
 Likely next extensions include:
 
-- logical qubit count
-- parallelized depth
 - Clifford+T decomposition counting
 - T-depth
 - simple routing-aware estimates
 - primitive pass-based resource estimation
 - resource estimates before and after compilation passes
+- max-qubit-load diagnostics
+- documentation examples comparing serial depth and parallelized depth
