@@ -1,17 +1,22 @@
+"""Tests for statevector operation application and circuit simulation."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from qc_compiler.circuits import Operation
-from qc_compiler.gates import Gate
+from qc_compiler.circuits import Circuit, Operation
+from qc_compiler.gates import CNOT, H, X, Z
+from qc_compiler.simulation import (
+    apply_operation_to_statevector,
+    simulate_statevector,
+)
 from qc_compiler.simulation.statevector import (
     _extract_local_index,
     _get_bit,
     _infer_num_qubits,
     _replace_local_bits,
     _set_bit,
-    apply_operation_to_statevector,
 )
 
 
@@ -85,14 +90,16 @@ def test_get_bit_returns_requested_bit(
     expected_bit: int,
 ) -> None:
     """Return the bit stored at the requested integer position."""
-    assert _get_bit(index, position) == expected_bit
+    result = _get_bit(index, position)
+
+    assert result == expected_bit
 
 
 def test_set_bit_sets_zero_bit_to_one() -> None:
     """Set a selected zero bit to one."""
     index = 0b1001
 
-    result = _set_bit(index, position=2, bit=1)
+    result = _set_bit(index=index, position=2, bit=1)
 
     assert result == 0b1101
 
@@ -101,32 +108,43 @@ def test_set_bit_clears_one_bit_to_zero() -> None:
     """Clear a selected one bit to zero."""
     index = 0b1101
 
-    result = _set_bit(index, position=2, bit=0)
+    result = _set_bit(index=index, position=2, bit=0)
 
     assert result == 0b1001
 
 
-def test_set_bit_preserves_bit_already_having_requested_value() -> None:
-    """Leave an index unchanged when the bit already has the requested value."""
+def test_set_bit_preserves_existing_one_bit() -> None:
+    """Preserve a selected bit that is already one."""
     index = 0b1010
 
-    assert _set_bit(index, position=1, bit=1) == index
-    assert _set_bit(index, position=0, bit=0) == index
+    result = _set_bit(index=index, position=1, bit=1)
+
+    assert result == index
+
+
+def test_set_bit_preserves_existing_zero_bit() -> None:
+    """Preserve a selected bit that is already zero."""
+    index = 0b1010
+
+    result = _set_bit(index=index, position=0, bit=0)
+
+    assert result == index
 
 
 @pytest.mark.parametrize("bit", [-1, 2, 3])
-def test_set_bit_rejects_value_other_than_zero_or_one(bit: int) -> None:
-    """Reject a replacement value that is not a binary bit."""
-    with pytest.raises(ValueError, match="bit must be zero or one"):
+def test_set_bit_rejects_nonbinary_value(bit: int) -> None:
+    """Reject a replacement value other than zero or one."""
+    with pytest.raises(
+        ValueError,
+        match="bit must be zero or one",
+    ):
         _set_bit(index=0, position=0, bit=bit)
 
 
-def test_extract_local_index_packs_selected_bits_in_qubit_order() -> None:
-    """Pack selected full-register bits into ordered local positions."""
-    basis_index = 0b1010
-
+def test_extract_local_index_packs_selected_bits() -> None:
+    """Pack selected full-register bits into local positions."""
     result = _extract_local_index(
-        basis_index,
+        basis_index=0b1010,
         qubits=(1, 2, 3),
     )
 
@@ -138,11 +156,11 @@ def test_extract_local_index_respects_qubit_tuple_order() -> None:
     basis_index = 0b1000
 
     forward = _extract_local_index(
-        basis_index,
+        basis_index=basis_index,
         qubits=(3, 0),
     )
     reversed_order = _extract_local_index(
-        basis_index,
+        basis_index=basis_index,
         qubits=(0, 3),
     )
 
@@ -150,12 +168,10 @@ def test_extract_local_index_respects_qubit_tuple_order() -> None:
     assert reversed_order == 0b10
 
 
-def test_replace_local_bits_replaces_only_selected_positions() -> None:
-    """Replace selected bits while preserving every untouched bit."""
-    basis_index = 0b0101
-
+def test_replace_local_bits_replaces_selected_positions() -> None:
+    """Replace selected bits while preserving untouched bits."""
     result = _replace_local_bits(
-        basis_index,
+        basis_index=0b0101,
         qubits=(0, 1),
         local_index=0b10,
     )
@@ -164,11 +180,9 @@ def test_replace_local_bits_replaces_only_selected_positions() -> None:
 
 
 def test_replace_local_bits_supports_nonadjacent_qubits() -> None:
-    """Replace nonadjacent selected bits in a full-register index."""
-    basis_index = 0b0011
-
+    """Replace nonadjacent selected bits."""
     result = _replace_local_bits(
-        basis_index,
+        basis_index=0b0011,
         qubits=(0, 3),
         local_index=0b10,
     )
@@ -178,18 +192,9 @@ def test_replace_local_bits_supports_nonadjacent_qubits() -> None:
 
 def test_apply_pauli_x_to_qubit_zero() -> None:
     """Apply Pauli-X to the least significant qubit."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(0,),
-    )
-    statevector = np.array(
-        [1, 0, 0, 0],
-        dtype=complex,
-    )
-    expected = np.array(
-        [0, 1, 0, 0],
-        dtype=complex,
-    )
+    operation = Operation(gate=X, qubits=(0,))
+    statevector = np.array([1, 0, 0, 0], dtype=complex)
+    expected = np.array([0, 1, 0, 0], dtype=complex)
 
     result = apply_operation_to_statevector(
         operation=operation,
@@ -201,18 +206,9 @@ def test_apply_pauli_x_to_qubit_zero() -> None:
 
 def test_apply_pauli_x_to_qubit_one() -> None:
     """Apply Pauli-X to the second qubit."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(1,),
-    )
-    statevector = np.array(
-        [1, 0, 0, 0],
-        dtype=complex,
-    )
-    expected = np.array(
-        [0, 0, 1, 0],
-        dtype=complex,
-    )
+    operation = Operation(gate=X, qubits=(1,))
+    statevector = np.array([1, 0, 0, 0], dtype=complex)
+    expected = np.array([0, 0, 1, 0], dtype=complex)
 
     result = apply_operation_to_statevector(
         operation=operation,
@@ -224,18 +220,9 @@ def test_apply_pauli_x_to_qubit_one() -> None:
 
 def test_apply_hadamard_creates_superposition() -> None:
     """Apply Hadamard and produce two output basis amplitudes."""
-    operation = Operation(
-        gate=Gate(name="H", arity=1),
-        qubits=(0,),
-    )
-    statevector = np.array(
-        [1, 0],
-        dtype=complex,
-    )
-    expected = np.array(
-        [1, 1],
-        dtype=complex,
-    ) / np.sqrt(2)
+    operation = Operation(gate=H, qubits=(0,))
+    statevector = np.array([1, 0], dtype=complex)
+    expected = np.array([1, 1], dtype=complex) / np.sqrt(2)
 
     result = apply_operation_to_statevector(
         operation=operation,
@@ -246,21 +233,10 @@ def test_apply_hadamard_creates_superposition() -> None:
 
 
 def test_apply_cnot_uses_first_operation_qubit_as_control() -> None:
-    """Apply controlled-NOT using little-endian local indexing."""
-    operation = Operation(
-        gate=Gate(name="CNOT", arity=2),
-        qubits=(0, 1),
-    )
-
-    # |q1 q0> = |01>: q0 is one, so q1 flips.
-    statevector = np.array(
-        [0, 1, 0, 0],
-        dtype=complex,
-    )
-    expected = np.array(
-        [0, 0, 0, 1],
-        dtype=complex,
-    )
+    """Apply CNOT using little-endian local indexing."""
+    operation = Operation(gate=CNOT, qubits=(0, 1))
+    statevector = np.array([0, 1, 0, 0], dtype=complex)
+    expected = np.array([0, 0, 0, 1], dtype=complex)
 
     result = apply_operation_to_statevector(
         operation=operation,
@@ -271,13 +247,8 @@ def test_apply_cnot_uses_first_operation_qubit_as_control() -> None:
 
 
 def test_apply_cnot_to_nonadjacent_qubits() -> None:
-    """Apply controlled-NOT to nonadjacent full-register qubits."""
-    operation = Operation(
-        gate=Gate(name="CNOT", arity=2),
-        qubits=(0, 3),
-    )
-
-    # |q3 q2 q1 q0> = |0001>, so q0 controls a flip of q3.
+    """Apply CNOT to nonadjacent full-register qubits."""
+    operation = Operation(gate=CNOT, qubits=(0, 3))
     statevector = np.zeros(16, dtype=complex)
     statevector[1] = 1
 
@@ -294,18 +265,9 @@ def test_apply_cnot_to_nonadjacent_qubits() -> None:
 
 def test_apply_pauli_x_moves_superposition_amplitudes() -> None:
     """Move each populated amplitude to the correct output index."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(0,),
-    )
-    statevector = np.array(
-        [1, 2, 0, 0],
-        dtype=complex,
-    ) / np.sqrt(5)
-    expected = np.array(
-        [2, 1, 0, 0],
-        dtype=complex,
-    ) / np.sqrt(5)
+    operation = Operation(gate=X, qubits=(0,))
+    statevector = np.array([1, 2, 0, 0], dtype=complex) / np.sqrt(5)
+    expected = np.array([2, 1, 0, 0], dtype=complex) / np.sqrt(5)
 
     result = apply_operation_to_statevector(
         operation=operation,
@@ -317,18 +279,9 @@ def test_apply_pauli_x_moves_superposition_amplitudes() -> None:
 
 def test_apply_hadamard_accumulates_superposition_amplitudes() -> None:
     """Accumulate amplitudes from multiple populated input states."""
-    operation = Operation(
-        gate=Gate(name="H", arity=1),
-        qubits=(0,),
-    )
-    statevector = np.array(
-        [1, 1],
-        dtype=complex,
-    ) / np.sqrt(2)
-    expected = np.array(
-        [1, 0],
-        dtype=complex,
-    )
+    operation = Operation(gate=H, qubits=(0,))
+    statevector = np.array([1, 1], dtype=complex) / np.sqrt(2)
+    expected = np.array([1, 0], dtype=complex)
 
     result = apply_operation_to_statevector(
         operation=operation,
@@ -340,14 +293,8 @@ def test_apply_hadamard_accumulates_superposition_amplitudes() -> None:
 
 def test_apply_operation_does_not_mutate_input_statevector() -> None:
     """Return a new statevector without modifying the input."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(0,),
-    )
-    statevector = np.array(
-        [1, 0],
-        dtype=complex,
-    )
+    operation = Operation(gate=X, qubits=(0,))
+    statevector = np.array([1, 0], dtype=complex)
     original = statevector.copy()
 
     result = apply_operation_to_statevector(
@@ -361,10 +308,7 @@ def test_apply_operation_does_not_mutate_input_statevector() -> None:
 
 def test_apply_operation_returns_complex_statevector() -> None:
     """Return a complex statevector even when the input is real."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(0,),
-    )
+    operation = Operation(gate=X, qubits=(0,))
     statevector = np.array([1, 0])
 
     result = apply_operation_to_statevector(
@@ -379,7 +323,10 @@ def test_apply_operation_rejects_nonoperation_input() -> None:
     """Reject an operation argument with the wrong type."""
     statevector = np.array([1, 0], dtype=complex)
 
-    with pytest.raises(TypeError, match="operation must be an Operation"):
+    with pytest.raises(
+        TypeError,
+        match="operation must be an Operation",
+    ):
         apply_operation_to_statevector(
             operation="X",  # type: ignore[arg-type]
             statevector=statevector,
@@ -388,10 +335,7 @@ def test_apply_operation_rejects_nonoperation_input() -> None:
 
 def test_apply_operation_rejects_nonarray_statevector() -> None:
     """Reject a statevector argument that is not a NumPy array."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(0,),
-    )
+    operation = Operation(gate=X, qubits=(0,))
 
     with pytest.raises(
         TypeError,
@@ -405,14 +349,8 @@ def test_apply_operation_rejects_nonarray_statevector() -> None:
 
 def test_apply_operation_rejects_out_of_range_qubit() -> None:
     """Reject an operation targeting a qubit outside the register."""
-    operation = Operation(
-        gate=Gate(name="X", arity=1),
-        qubits=(2,),
-    )
-    statevector = np.array(
-        [1, 0, 0, 0],
-        dtype=complex,
-    )
+    operation = Operation(gate=X, qubits=(2,))
+    statevector = np.array([1, 0, 0, 0], dtype=complex)
 
     with pytest.raises(
         ValueError,
@@ -421,4 +359,180 @@ def test_apply_operation_rejects_out_of_range_qubit() -> None:
         apply_operation_to_statevector(
             operation=operation,
             statevector=statevector,
+        )
+
+
+def test_simulate_statevector_returns_zero_state_for_empty_circuit() -> None:
+    """Return the all-zero state for an empty circuit."""
+    circuit = Circuit(num_qubits=2, operations=())
+    expected = np.array([1, 0, 0, 0], dtype=complex)
+
+    result = simulate_statevector(circuit=circuit)
+
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_simulate_statevector_applies_operations_in_order() -> None:
+    """Apply circuit operations in their stored order."""
+    circuit = Circuit(
+        num_qubits=1,
+        operations=(
+            Operation(gate=H, qubits=(0,)),
+            Operation(gate=Z, qubits=(0,)),
+        ),
+    )
+    expected = np.array([1, -1], dtype=complex) / np.sqrt(2)
+
+    result = simulate_statevector(circuit=circuit)
+
+    np.testing.assert_allclose(result, expected)
+
+
+def test_simulate_statevector_applies_two_pauli_x_gates_as_identity() -> None:
+    """Return to the initial state after applying Pauli-X twice."""
+    x_operation = Operation(gate=X, qubits=(0,))
+    circuit = Circuit(
+        num_qubits=1,
+        operations=(x_operation, x_operation),
+    )
+    expected = np.array([1, 0], dtype=complex)
+
+    result = simulate_statevector(circuit=circuit)
+
+    np.testing.assert_allclose(result, expected)
+
+
+def test_simulate_statevector_prepares_bell_state() -> None:
+    """Prepare a Bell state from the all-zero state."""
+    circuit = Circuit(
+        num_qubits=2,
+        operations=(
+            Operation(gate=H, qubits=(0,)),
+            Operation(gate=CNOT, qubits=(0, 1)),
+        ),
+    )
+    expected = np.array([1, 0, 0, 1], dtype=complex) / np.sqrt(2)
+
+    result = simulate_statevector(circuit=circuit)
+
+    np.testing.assert_allclose(result, expected)
+
+
+def test_simulate_statevector_uses_supplied_initial_statevector() -> None:
+    """Simulate a circuit from a supplied initial statevector."""
+    circuit = Circuit(
+        num_qubits=1,
+        operations=(Operation(gate=X, qubits=(0,)),),
+    )
+    initial_statevector = np.array([0, 1], dtype=complex)
+    expected = np.array([1, 0], dtype=complex)
+
+    result = simulate_statevector(
+        circuit=circuit,
+        initial_statevector=initial_statevector,
+    )
+
+    np.testing.assert_allclose(result, expected)
+
+
+def test_simulate_statevector_does_not_mutate_initial_statevector() -> None:
+    """Return a new result without mutating the supplied initial state."""
+    circuit = Circuit(
+        num_qubits=1,
+        operations=(Operation(gate=X, qubits=(0,)),),
+    )
+    initial_statevector = np.array([0, 1], dtype=complex)
+    original = initial_statevector.copy()
+
+    result = simulate_statevector(
+        circuit=circuit,
+        initial_statevector=initial_statevector,
+    )
+
+    np.testing.assert_array_equal(initial_statevector, original)
+    assert result is not initial_statevector
+
+
+def test_simulate_statevector_copies_initial_state_for_empty_circuit() -> None:
+    """Return a copy of the supplied state for an empty circuit."""
+    circuit = Circuit(num_qubits=1, operations=())
+    initial_statevector = np.array([0, 1], dtype=complex)
+
+    result = simulate_statevector(
+        circuit=circuit,
+        initial_statevector=initial_statevector,
+    )
+
+    np.testing.assert_array_equal(result, initial_statevector)
+    assert result is not initial_statevector
+
+
+def test_simulate_statevector_returns_complex_statevector() -> None:
+    """Return a complex statevector for a real initial statevector."""
+    circuit = Circuit(num_qubits=1, operations=())
+    initial_statevector = np.array([1, 0])
+
+    result = simulate_statevector(
+        circuit=circuit,
+        initial_statevector=initial_statevector,
+    )
+
+    assert np.issubdtype(result.dtype, np.complexfloating)
+
+
+def test_simulate_statevector_rejects_noncircuit_input() -> None:
+    """Reject an input that is not a Circuit."""
+    with pytest.raises(
+        TypeError,
+        match="circuit must be a Circuit object",
+    ):
+        simulate_statevector(
+            circuit="not a circuit",  # type: ignore[arg-type]
+        )
+
+
+def test_simulate_statevector_rejects_nonarray_initial_statevector() -> None:
+    """Reject an initial statevector that is not a NumPy array."""
+    circuit = Circuit(num_qubits=1, operations=())
+
+    with pytest.raises(
+        TypeError,
+        match="initial_statevector must be a NumPy array",
+    ):
+        simulate_statevector(
+            circuit=circuit,
+            initial_statevector=[1, 0],  # type: ignore[arg-type]
+        )
+
+
+def test_simulate_statevector_rejects_nonvector_initial_state() -> None:
+    """Reject an initial statevector that is not one-dimensional."""
+    circuit = Circuit(num_qubits=2, operations=())
+    initial_statevector = np.zeros((2, 2), dtype=complex)
+
+    with pytest.raises(
+        ValueError,
+        match="Initial statevector must be one-dimensional",
+    ):
+        simulate_statevector(
+            circuit=circuit,
+            initial_statevector=initial_statevector,
+        )
+
+
+def test_simulate_statevector_rejects_incorrect_initial_state_size() -> None:
+    """Reject an initial statevector with the wrong register size."""
+    circuit = Circuit(num_qubits=2, operations=())
+    initial_statevector = np.array([1, 0], dtype=complex)
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Initial statevector size must match the circuit "
+            "register size"
+        ),
+    ):
+        simulate_statevector(
+            circuit=circuit,
+            initial_statevector=initial_statevector,
         )

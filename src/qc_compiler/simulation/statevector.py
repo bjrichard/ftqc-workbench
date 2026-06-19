@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from qc_compiler.circuits import Operation
+from qc_compiler.circuits import Circuit, Operation
 from qc_compiler.simulation.matrices import get_gate_matrix
 
 
@@ -257,3 +257,76 @@ def _set_bit(
         return index & ~(1 << position)
 
     return index | (1 << position)
+
+
+def simulate_statevector(
+    circuit: Circuit,
+    initial_statevector: np.ndarray | None = None,
+) -> np.ndarray:
+    """
+    Simulate a circuit and return the final statevector.
+
+    Parameters
+    ----------
+    circuit : Circuit
+        Circuit whose operations are applied in order.
+    initial_statevector : np.ndarray | None, optional
+        Initial statevector. If omitted, the simulation begins in the
+        all-zero computational basis state.
+
+    Returns
+    -------
+    np.ndarray
+        Final complex-valued statevector.
+
+    Raises
+    ------
+    TypeError
+        If ``circuit`` is not a ``Circuit`` or ``initial_statevector`` is
+        not a NumPy array.
+    ValueError
+        If the initial statevector is not one-dimensional or has the wrong
+        size for the circuit register.
+    """
+    if not isinstance(circuit, Circuit):
+        raise TypeError("circuit must be a Circuit object.")
+
+    num_qubits = circuit.num_qubits
+    expected_size = 2**num_qubits
+
+    if initial_statevector is None:
+        statevector = np.zeros(
+            expected_size,
+            dtype=complex,
+        )
+        statevector[0] = 1
+
+    else:
+        if not isinstance(initial_statevector, np.ndarray):
+            raise TypeError(
+                "initial_statevector must be a NumPy array."
+            )
+
+        if initial_statevector.ndim != 1:
+            raise ValueError(
+                "Initial statevector must be one-dimensional."
+            )
+
+        if initial_statevector.size != expected_size:
+            raise ValueError(
+                "Initial statevector size must match the circuit "
+                "register size."
+            )
+
+        statevector = initial_statevector.astype(
+            complex,
+            copy=True,
+        )
+
+    for operation in circuit.operations:
+        statevector = apply_operation_to_statevector(
+            operation=operation,
+            statevector=statevector,
+        )
+
+    return statevector
