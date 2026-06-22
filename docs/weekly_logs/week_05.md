@@ -170,3 +170,34 @@ Week 5 is complete when:
 Do not start multi-controlled Toffoli construction, integer adders, local optimization, or T-depth work during Week 5 unless exact simulation and equivalence are already complete.
 
 Those items remain important, but they depend on the verification backbone that Week 5 is intended to build.
+
+## Week 5 completion summary
+
+Week 5 established the exact simulation and equivalence foundation for the
+FTQC workbench.
+
+Completed:
+
+- added primitive matrices for the supported gate library
+- documented little-endian statevector and basis-index conventions
+- implemented single-operation statevector application
+- implemented full-circuit statevector simulation
+- implemented circuit-to-unitary construction
+- implemented unitary equivalence up to global phase
+- implemented circuit equivalence up to global phase
+- added tests for primitive gates, nonadjacent operations, Bell-state
+  preparation, circuit identities, and global-phase equivalence
+- exposed the simulation and verification functions through their public
+  package APIs
+- ran the full test suite successfully
+
+Key design outcomes:
+
+- qubit zero is the least significant bit
+- operation qubit tuple order defines local matrix indexing
+- circuit unitary column `j` is the output produced from basis state `|j>`
+- simulation functions do not mutate supplied statevectors
+- exact simulation is intentionally limited to small circuits and serves as
+  a verification reference rather than a scalable backend
+
+Week 5 status: complete.
