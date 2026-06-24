@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from qc_compiler.circuits import Circuit
-from qc_compiler.gates import CNOT, I, X
+from qc_compiler.gates import CNOT, I, TOFFOLI, X
 
 
 def simulate_basis_state(
@@ -35,6 +35,10 @@ def simulate_basis_state(
     -----
     Basis indices use little-endian qubit indexing: qubit zero is the least
     significant bit.
+
+    The order of ``operation.qubits`` defines gate roles. For Controlled-NOT
+    (CNOT), the tuple is ``(control, target)``. For Toffoli, the tuple is
+    ``(control_0, control_1, target)``.
 
     This simulator supports only gates that map each computational-basis
     state to exactly one computational-basis state. It does not track
@@ -70,6 +74,16 @@ def simulate_basis_state(
             control_bit = (output_index >> control) & 1
 
             if control_bit == 1:
+                output_index ^= 1 << target
+
+            continue
+
+        if operation.gate == TOFFOLI:
+            control_0, control_1, target = operation.qubits
+            control_bit_0 = (output_index >> control_0) & 1
+            control_bit_1 = (output_index >> control_1) & 1
+
+            if control_bit_0 == 1 and control_bit_1 == 1:
                 output_index ^= 1 << target
 
             continue

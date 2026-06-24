@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 from qc_compiler.circuits import Circuit, Operation
-from qc_compiler.gates import CNOT, H, I, X
-from qc_compiler.simulation.basis import simulate_basis_state
+from qc_compiler.gates import CNOT, H, I, TOFFOLI, X
+from qc_compiler.simulation import simulate_basis_state
 
 
 def test_identity_leaves_basis_index_unchanged() -> None:
@@ -26,7 +26,7 @@ def test_identity_leaves_basis_index_unchanged() -> None:
     assert result == 0b10
 
 
-def test_x_flips_target_bit() -> None:
+def test_x_flips_target_bit_from_zero_to_one() -> None:
     circuit = Circuit(
         num_qubits=3,
         operations=(
@@ -43,6 +43,25 @@ def test_x_flips_target_bit() -> None:
     )
 
     assert result == 0b111
+
+
+def test_x_flips_target_bit_from_one_to_zero() -> None:
+    circuit = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=X,
+                qubits=(1,),
+            ),
+        ),
+    )
+
+    result = simulate_basis_state(
+        circuit=circuit,
+        basis_index=0b111,
+    )
+
+    assert result == 0b101
 
 
 def test_cnot_flips_target_when_control_is_one() -> None:
@@ -102,27 +121,121 @@ def test_nonadjacent_cnot_uses_qubit_indices() -> None:
     assert result == 0b101
 
 
-def test_operations_are_applied_in_order() -> None:
+def test_toffoli_flips_target_when_both_controls_are_one() -> None:
     circuit = Circuit(
-        num_qubits=2,
+        num_qubits=3,
         operations=(
             Operation(
-                gate=X,
-                qubits=(0,),
-            ),
-            Operation(
-                gate=CNOT,
-                qubits=(0, 1),
+                gate=TOFFOLI,
+                qubits=(0, 1, 2),
             ),
         ),
     )
 
     result = simulate_basis_state(
         circuit=circuit,
-        basis_index=0b00,
+        basis_index=0b011,
     )
 
-    assert result == 0b11
+    assert result == 0b111
+
+
+def test_toffoli_flips_target_from_one_to_zero() -> None:
+    circuit = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=TOFFOLI,
+                qubits=(0, 1, 2),
+            ),
+        ),
+    )
+
+    result = simulate_basis_state(
+        circuit=circuit,
+        basis_index=0b111,
+    )
+
+    assert result == 0b011
+
+
+@pytest.mark.parametrize(
+    ("basis_index", "expected"),
+    (
+        (0b000, 0b000),
+        (0b001, 0b001),
+        (0b010, 0b010),
+        (0b100, 0b100),
+        (0b101, 0b101),
+        (0b110, 0b110),
+    ),
+)
+def test_toffoli_leaves_target_unchanged_unless_both_controls_are_one(
+    basis_index: int,
+    expected: int,
+) -> None:
+    circuit = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=TOFFOLI,
+                qubits=(0, 1, 2),
+            ),
+        ),
+    )
+
+    result = simulate_basis_state(
+        circuit=circuit,
+        basis_index=basis_index,
+    )
+
+    assert result == expected
+
+
+def test_toffoli_respects_nonadjacent_nonordered_qubit_roles() -> None:
+    circuit = Circuit(
+        num_qubits=4,
+        operations=(
+            Operation(
+                gate=TOFFOLI,
+                qubits=(3, 0, 2),
+            ),
+        ),
+    )
+
+    result = simulate_basis_state(
+        circuit=circuit,
+        basis_index=0b1001,
+    )
+
+    assert result == 0b1101
+
+
+def test_operations_are_applied_in_order() -> None:
+    circuit = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=X,
+                qubits=(0,),
+            ),
+            Operation(
+                gate=X,
+                qubits=(1,),
+            ),
+            Operation(
+                gate=TOFFOLI,
+                qubits=(0, 1, 2),
+            ),
+        ),
+    )
+
+    result = simulate_basis_state(
+        circuit=circuit,
+        basis_index=0b000,
+    )
+
+    assert result == 0b111
 
 
 @pytest.mark.parametrize(
@@ -182,7 +295,10 @@ def test_unsupported_gate_raises_value_error() -> None:
         ),
     )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError,
+        match="does not support gate 'H'",
+    ):
         simulate_basis_state(
             circuit=circuit,
             basis_index=0,
