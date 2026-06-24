@@ -94,3 +94,50 @@ def simulate_basis_state(
         )
 
     return output_index
+
+
+def basis_state_permutation(
+    circuit: Circuit,
+) -> tuple[int, ...]:
+    """Return the basis-state permutation implemented by a circuit.
+
+    Parameters
+    ----------
+    circuit
+        Circuit containing only gates supported by basis-state simulation.
+
+    Returns
+    -------
+    tuple[int, ...]
+        Output basis index for each computational-basis input. Entry ``j``
+        contains the output produced from input basis index ``j``.
+
+    Raises
+    ------
+    TypeError
+        If ``circuit`` is not a ``Circuit``.
+    ValueError
+        If the circuit contains a gate that is not supported by basis-state
+        simulation.
+
+    Notes
+    -----
+    The returned tuple has length ``2**circuit.num_qubits``. Input and output
+    indices use little-endian qubit indexing.
+
+    Because every supported gate is reversible, the returned values form a
+    permutation of the integers from ``0`` through
+    ``2**circuit.num_qubits - 1``.
+    """
+    if not isinstance(circuit, Circuit):
+        raise TypeError("circuit must be a Circuit object.")
+
+    state_dimension = 2**circuit.num_qubits
+
+    return tuple(
+        simulate_basis_state(
+            circuit=circuit,
+            basis_index=basis_index,
+        )
+        for basis_index in range(state_dimension)
+    )
