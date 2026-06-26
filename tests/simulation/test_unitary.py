@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from qc_compiler.circuits import Circuit, Operation
-from qc_compiler.gates import CNOT, H, X
+from qc_compiler.gates import CNOT, H, TOFFOLI, X
 from qc_compiler.simulation import circuit_to_unitary
 
 
@@ -122,6 +122,25 @@ def test_circuit_to_unitary_returns_cnot_matrix() -> None:
         ],
         dtype=complex,
     )
+
+    result = circuit_to_unitary(circuit)
+
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_circuit_to_unitary_returns_toffoli_matrix() -> None:
+    """Construct the Toffoli matrix using two controls and one target."""
+    circuit = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=TOFFOLI,
+                qubits=(0, 1, 2),
+            ),
+        ),
+    )
+    expected = np.eye(8, dtype=complex)
+    expected[[3, 7]] = expected[[7, 3]]
 
     result = circuit_to_unitary(circuit)
 
