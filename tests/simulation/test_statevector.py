@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from qc_compiler.circuits import Circuit, Operation
-from qc_compiler.gates import CNOT, H, X, Z
+from qc_compiler.gates import CNOT, H, X, Z, TOFFOLI
 from qc_compiler.simulation import (
     apply_operation_to_statevector,
     simulate_statevector,
@@ -400,6 +400,56 @@ def test_simulate_statevector_applies_two_pauli_x_gates_as_identity() -> None:
     result = simulate_statevector(circuit=circuit)
 
     np.testing.assert_allclose(result, expected)
+
+
+def test_simulate_statevector_applies_toffoli() -> None:
+    """Apply Toffoli when both control qubits are one."""
+    circuit = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=TOFFOLI,
+                qubits=(0, 1, 2),
+            ),
+        ),
+    )
+    initial_statevector = np.zeros(8, dtype=complex)
+    initial_statevector[0b011] = 1
+
+    result = simulate_statevector(
+        circuit,
+        initial_statevector=initial_statevector,
+    )
+
+    expected = np.zeros(8, dtype=complex)
+    expected[0b111] = 1
+
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_simulate_statevector_supports_reordered_toffoli_qubits() -> None:
+    """Respect reordered Toffoli roles in statevector simulation."""
+    circuit = Circuit(
+        num_qubits=4,
+        operations=(
+            Operation(
+                gate=TOFFOLI,
+                qubits=(3, 0, 2),
+            ),
+        ),
+    )
+    initial_statevector = np.zeros(16, dtype=complex)
+    initial_statevector[0b1001] = 1
+
+    result = simulate_statevector(
+        circuit,
+        initial_statevector=initial_statevector,
+    )
+
+    expected = np.zeros(16, dtype=complex)
+    expected[0b1101] = 1
+
+    np.testing.assert_array_equal(result, expected)
 
 
 def test_simulate_statevector_prepares_bell_state() -> None:

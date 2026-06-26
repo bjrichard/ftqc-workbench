@@ -2,7 +2,18 @@ import numpy as np
 import pytest
 
 from qc_compiler.gates.gate import Gate
-from qc_compiler.gates.library import CNOT, CZ, H, I, S, T, X, Y, Z
+from qc_compiler.gates.library import (
+    CNOT,
+    CZ,
+    H,
+    I,
+    S,
+    T,
+    TOFFOLI,
+    X,
+    Y,
+    Z,
+)
 from qc_compiler.simulation import get_gate_matrix
 
 
@@ -126,6 +137,24 @@ def test_get_gate_matrix_returns_cz_matrix():
 
     np.testing.assert_array_equal(get_gate_matrix(gate=CZ), expected)
 
+
+def test_get_gate_matrix_returns_toffoli_matrix():
+    """Return the canonical little-endian Toffoli matrix."""
+    expected = np.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+        ],
+        dtype=complex,
+    )
+
+    np.testing.assert_array_equal(get_gate_matrix(gate=TOFFOLI), expected)
 
 def test_get_gate_matrix_returns_complex_numpy_array():
     """Verify that gate matrices are returned as complex NumPy arrays."""

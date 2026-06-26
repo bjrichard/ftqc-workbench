@@ -3,7 +3,18 @@ from __future__ import annotations
 import numpy as np
 
 from qc_compiler.gates.gate import Gate
-from qc_compiler.gates.library import CNOT, CZ, H, I, S, T, X, Y, Z
+from qc_compiler.gates.library import (
+    CNOT,
+    CZ,
+    H,
+    I,
+    S,
+    T,
+    TOFFOLI,
+    X,
+    Y,
+    Z,
+)
 
 
 _GATE_MATRICES: dict[Gate, np.ndarray] = {
@@ -72,6 +83,19 @@ _GATE_MATRICES: dict[Gate, np.ndarray] = {
             [0, 1, 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, -1],
+        ],
+        dtype=complex,
+    ),
+    TOFFOLI: np.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
         ],
         dtype=complex,
     ),
