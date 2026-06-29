@@ -149,3 +149,10 @@ def test_resource_estimator_imports_from_package():
     from qc_compiler.resources import ResourceEstimator as ImportedResourceEstimator
 
     assert ImportedResourceEstimator is ResourceEstimator
+
+
+def test_resource_estimator_preserves_multi_controlled_x_dependencies():
+    """Preserve causal dependencies in a multi-controlled X ladder."""
+    estimate = ResourceEstimator().estimate(MULTI_CONTROLLED_X_CIRCUIT)
+
+    assert estimate.parallel_depth == 5

@@ -4,45 +4,46 @@ from qc_compiler.circuits import Circuit
 
 
 def estimate_parallel_depth(circuit: Circuit) -> int:
-    """Estimate greedy parallelized circuit depth.
+    """Estimate circuit depth while preserving qubit dependencies.
 
     Parameters
     ----------
-    circuit : Circuit
-        Circuit whose operations should be assigned to parallel layers.
+    circuit
+        Circuit whose parallel depth should be estimated.
 
     Returns
     -------
     int
-        Number of greedy parallel layers required by the circuit.
+        Number of dependency-preserving execution layers.
 
     Raises
     ------
     TypeError
-        If ``circuit`` is not a Circuit object.
+        If ``circuit`` is not a ``Circuit`` object.
 
     Notes
     -----
-    This function preserves operation order. It places each operation into the
-    earliest existing layer that has no qubit conflict. It does not commute,
-    reorder, route, or globally optimize the circuit.
+    Operations acting on disjoint qubits may share a layer. Operations sharing
+    any qubit are ordered according to their appearance in the circuit.
     """
     if not isinstance(circuit, Circuit):
         raise TypeError("circuit must be a Circuit object.")
 
-    layers: list[set[int]] = []
+    last_layer_by_qubit = [0] * circuit.num_qubits
+    depth = 0
 
-    for operation in circuit:
-        operation_qubits = set(operation.qubits)
-        placed = False
+    for operation in circuit.operations:
+        operation_layer = (
+            max(
+                last_layer_by_qubit[qubit]
+                for qubit in operation.qubits
+            )
+            + 1
+        )
 
-        for layer_qubits in layers:
-            if operation_qubits.isdisjoint(layer_qubits):
-                layer_qubits.update(operation_qubits)
-                placed = True
-                break
+        for qubit in operation.qubits:
+            last_layer_by_qubit[qubit] = operation_layer
 
-        if not placed:
-            layers.append(operation_qubits)
+        depth = max(depth, operation_layer)
 
-    return len(layers)
+    return depth

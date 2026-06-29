@@ -279,7 +279,7 @@ This is not parallelized circuit depth.
 
 ### `parallel_depth`
 
-`parallel_depth` is currently a greedy parallelized circuit depth estimate.
+`parallel_depth` is a dependency-preserving parallel circuit depth estimate.
 
 Current rule:
 
@@ -287,9 +287,21 @@ Current rule:
 parallel_depth = estimate_parallel_depth(circuit)
 ```
 
-The helper function places operations into compatible layers based on qubit occupancy.
+The helper tracks the latest execution layer used by each qubit. For every operation, it assigns the operation to one layer after the latest layer occupied by any qubit in that operation:
 
-This model allows operations on disjoint qubits to share a layer.
+```python
+operation_layer = (
+    max(
+        last_layer_by_qubit[qubit]
+        for qubit in operation.qubits
+    )
+    + 1
+)
+```
+
+It then records that layer for every qubit touched by the operation.
+
+This preserves the order of operations that share any qubit while allowing operations on disjoint qubits to occupy the same layer.
 
 Example:
 
@@ -309,7 +321,25 @@ depth = 3
 parallel_depth = 2
 ```
 
-The first two single-qubit operations can share one parallel layer. The controlled-NOT (CNOT) operation must occupy a different layer because it touches both qubits.
+The first two single-qubit operations can share layer 1 because they act on disjoint qubits. The controlled-NOT (CNOT) operation occupies layer 2 because it acts on both qubits after their preceding operations.
+
+Dependency propagation can occur through a chain of shared qubits. For example:
+
+```text
+O1 acts on q0 and q1
+O2 acts on q1 and q2
+O3 acts on q2 and q3
+```
+
+The operations must occupy three successive layers because `O2` follows `O1` on `q1`, and `O3` follows `O2` on `q2`.
+
+The implementation runs in time proportional to the total number of qubit operands across all operations:
+
+\[
+O\left(\sum_i a_i\right),
+\]
+
+where \(a_i\) is the arity of operation \(i\). For a fixed-arity gate set, this is linear in the number of operations. The implementation stores one latest-layer value per circuit qubit.
 
 This is not a globally optimized scheduler. It does not:
 
@@ -318,10 +348,10 @@ This is not a globally optimized scheduler. It does not:
 - insert swaps,
 - account for hardware topology,
 - model gate duration,
-- preserve an explicit dependency graph,
-- or optimize across alternative circuit representations.
+- optimize across algebraically equivalent circuit representations,
+- or find a minimum-depth schedule under arbitrary circuit rewrites.
 
-Parallel-depth behavior for synthesized compute–use–uncompute circuits should therefore be tested separately rather than inferred directly from their operation count.
+It estimates parallel depth for the circuit exactly as ordered, subject to per-qubit dependencies.
 
 ## Example: empty circuit
 
