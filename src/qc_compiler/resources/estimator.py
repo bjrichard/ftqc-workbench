@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from qc_compiler.circuits import Circuit
-from qc_compiler.gates import CNOT, CZ, T
+from qc_compiler.gates import CNOT, CZ, T, TOFFOLI
 from qc_compiler.resources.depth import estimate_parallel_depth
 from qc_compiler.resources.estimate import ResourceEstimate
 
@@ -44,6 +44,7 @@ class ResourceEstimator:
         t_count = 0
         cnot_count = 0
         cz_count = 0
+        toffoli_count = 0
 
         for operation in circuit:
             if operation.gate == T:
@@ -55,11 +56,15 @@ class ResourceEstimator:
             if operation.gate == CZ:
                 cz_count += 1
 
+            if operation.gate == TOFFOLI:
+                toffoli_count += 1
+
         return ResourceEstimate(
             gate_count=gate_count,
             t_count=t_count,
             cnot_count=cnot_count,
             cz_count=cz_count,
+            toffoli_count=toffoli_count,
             logical_qubit_count=circuit.num_qubits,
             ancilla_count=0,
             depth=gate_count,

@@ -1,7 +1,7 @@
 import pytest
 
-from qc_compiler.circuits import Circuit
-from qc_compiler.gates import CNOT, CZ, T, X, Z
+from qc_compiler.circuits import Circuit, build_multi_controlled_x
+from qc_compiler.gates import CNOT, CZ, T, TOFFOLI, X, Z
 from qc_compiler.resources import ResourceEstimator
 
 
@@ -19,6 +19,16 @@ PARALLELIZABLE_CIRCUIT = (
     .append_gate(gate=Z, qubits=(1,))
     .append_gate(gate=CNOT, qubits=(0, 1))
 )
+TOFFOLI_CIRCUIT = Circuit(num_qubits=3).append_gate(
+    gate=TOFFOLI,
+    qubits=(0, 1, 2),
+)
+MULTI_CONTROLLED_X_CIRCUIT = build_multi_controlled_x(
+    controls=(0, 1, 2, 3),
+    target=4,
+    ancillas=(5, 6),
+    num_qubits=7,
+)
 
 
 def test_resource_estimator_estimates_empty_circuit():
@@ -29,6 +39,7 @@ def test_resource_estimator_estimates_empty_circuit():
     assert estimate.t_count == 0
     assert estimate.cnot_count == 0
     assert estimate.cz_count == 0
+    assert estimate.toffoli_count == 0
     assert estimate.logical_qubit_count == 2
     assert estimate.ancilla_count == 0
     assert estimate.depth == 0
@@ -61,6 +72,13 @@ def test_resource_estimator_counts_cz_gates():
     estimate = ResourceEstimator().estimate(NONTRIVIAL_CIRCUIT)
 
     assert estimate.cz_count == 1
+
+
+def test_resource_estimator_counts_toffoli_gates():
+    """Verify that the estimator counts Toffoli gates."""
+    estimate = ResourceEstimator().estimate(TOFFOLI_CIRCUIT)
+
+    assert estimate.toffoli_count == 1
 
 
 def test_resource_estimator_counts_logical_qubits():
@@ -104,6 +122,20 @@ def test_resource_estimator_estimates_parallel_depth():
 
     assert estimate.depth == 3
     assert estimate.parallel_depth == 2
+
+
+def test_resource_estimator_counts_multi_controlled_x_resources():
+    """Verify logical resource counts for a multi-controlled X ladder."""
+    estimate = ResourceEstimator().estimate(MULTI_CONTROLLED_X_CIRCUIT)
+
+    assert estimate.gate_count == 5
+    assert estimate.t_count == 0
+    assert estimate.cnot_count == 0
+    assert estimate.cz_count == 0
+    assert estimate.toffoli_count == 5
+    assert estimate.logical_qubit_count == 7
+    assert estimate.ancilla_count == 0
+    assert estimate.depth == 5
 
 
 def test_resource_estimator_rejects_non_circuit_input():

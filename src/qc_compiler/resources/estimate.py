@@ -21,6 +21,8 @@ class ResourceEstimate:
         Number of controlled-NOT gates.
     cz_count : int
         Number of controlled-Z gates.
+    toffoli_count : int
+        Number of Toffoli gates.
     logical_qubit_count : int
         Number of logical qubits represented by the circuit.
     ancilla_count : int
@@ -48,6 +50,7 @@ class ResourceEstimate:
     t_count: int
     cnot_count: int
     cz_count: int
+    toffoli_count: int
     logical_qubit_count: int
     ancilla_count: int = 0
     depth: int | None = None
@@ -59,6 +62,9 @@ class ResourceEstimate:
         self._validate_nonnegative_integer("t_count", self.t_count)
         self._validate_nonnegative_integer("cnot_count", self.cnot_count)
         self._validate_nonnegative_integer("cz_count", self.cz_count)
+        self._validate_nonnegative_integer(
+            "toffoli_count", self.toffoli_count
+        )
         self._validate_nonnegative_integer(
             "logical_qubit_count", self.logical_qubit_count
         )

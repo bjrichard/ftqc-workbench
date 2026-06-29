@@ -4,7 +4,7 @@
 
 This document records the current logical resource-model assumptions for the Fault-Tolerant Quantum Computing (FTQC) workbench.
 
-As of Week 4, the project has implemented:
+As of Week 6, the project has implemented:
 
 - the basic circuit Intermediate Representation (IR)
 - primitive logical gate definitions
@@ -15,10 +15,11 @@ As of Week 4, the project has implemented:
 - T-gate counting
 - controlled-NOT (CNOT) gate counting
 - controlled-Z (CZ) gate counting
+- Toffoli-gate counting
 - logical qubit counting
 - an ancilla-count convention
 - a serial circuit depth estimate
-- a greedy order-preserving parallelized circuit depth estimate
+- a greedy parallelized circuit depth estimate
 
 The current estimates are logical bookkeeping estimates. They are not physical resource estimates and should not be interpreted as surface-code cost estimates, hardware runtime estimates, or practical fault-tolerant execution estimates.
 
@@ -104,7 +105,7 @@ Expected future classification:
 | `CNOT` | Clifford |
 | `CZ` | Clifford |
 | `T` | non-Clifford |
-| `TOFFOLI` | primitive placeholder; later decomposed or counted according to an explicit convention |
+| `TOFFOLI` | primitive placeholder counted explicitly; later decomposed according to an explicit convention |
 
 ## Current resource estimate object
 
@@ -116,6 +117,7 @@ A `ResourceEstimate` stores scalar logical resource counts:
 - `t_count`
 - `cnot_count`
 - `cz_count`
+- `toffoli_count`
 - `logical_qubit_count`
 - `ancilla_count`
 - `depth`
@@ -141,10 +143,11 @@ The estimator currently computes:
 - T-gate count
 - controlled-NOT (CNOT) gate count
 - controlled-Z (CZ) gate count
+- Toffoli-gate count
 - logical qubit count
 - ancilla count
 - serial circuit depth
-- greedy order-preserving parallelized circuit depth
+- greedy parallelized circuit depth
 
 The estimator does not yet model decomposition, routing, scheduling, gate commutation, global depth optimization, measurement, feedforward, noise, or physical fault-tolerant overhead.
 
@@ -172,7 +175,7 @@ Current rule:
 t_count = number of operations where operation.gate == T
 ```
 
-This is a logical T-count only. It does not yet include T gates introduced by decompositions.
+This is a logical T-count only. It does not include T gates that would be introduced by decomposing higher-level gates such as Toffoli.
 
 ### `cnot_count`
 
@@ -184,7 +187,7 @@ Current rule:
 cnot_count = number of operations where operation.gate == CNOT
 ```
 
-This is a logical controlled-NOT (CNOT) count only. It does not yet include controlled-NOT (CNOT) gates introduced by routing, decomposition, or compilation passes.
+This is a logical controlled-NOT (CNOT) count only. It does not include controlled-NOT (CNOT) gates introduced by routing, decomposition, or compilation passes.
 
 ### `cz_count`
 
@@ -196,7 +199,30 @@ Current rule:
 cz_count = number of operations where operation.gate == CZ
 ```
 
-This is a logical controlled-Z (CZ) count only. It does not yet include controlled-Z (CZ) gates introduced by routing, decomposition, or compilation passes.
+This is a logical controlled-Z (CZ) count only. It does not include controlled-Z (CZ) gates introduced by routing, decomposition, or compilation passes.
+
+### `toffoli_count`
+
+`toffoli_count` is the number of operations whose gate is the primitive `TOFFOLI` gate.
+
+Current rule:
+
+```python
+toffoli_count = number of operations where operation.gate == TOFFOLI
+```
+
+The Toffoli count records logical Toffoli operations exactly as they appear in the circuit.
+
+It does not convert Toffoli gates into:
+
+- T gates,
+- controlled-NOT (CNOT) gates,
+- Clifford gates,
+- relative-phase Toffoli gates,
+- magic states,
+- or fault-tolerant code cycles.
+
+Those costs require an explicit decomposition and lower-level resource convention.
 
 ### `logical_qubit_count`
 
@@ -208,7 +234,9 @@ Current rule:
 logical_qubit_count = circuit.num_qubits
 ```
 
-This is a logical circuit-width estimate only. It is not a physical qubit estimate and does not include ancillas, syndrome-extraction qubits, routing resources, or magic-state factory qubits.
+This is a logical circuit-width estimate only. It is not a physical qubit estimate.
+
+Every qubit slot in the circuit contributes to this count, regardless of whether the qubit is used as data, target, control, or temporary workspace.
 
 ### `ancilla_count`
 
@@ -220,9 +248,20 @@ Current rule:
 ancilla_count = 0
 ```
 
-This is not a claim that fault-tolerant implementations require no ancillas. It means the current estimator does not yet model decompositions, workspace allocation, syndrome extraction, magic-state factories, or any other process that would introduce auxiliary qubits.
+This is not a claim that the circuit contains no ancillas or that fault-tolerant implementations require no ancillas.
 
-Future ancilla conventions must distinguish clean ancillas from dirty ancillas before nonzero ancilla estimates are introduced.
+The current `Circuit` Intermediate Representation does not store qubit-role metadata. Once a builder returns a generic circuit, the estimator cannot determine which qubits were declared as clean ancillas, dirty ancillas, controls, targets, or ordinary data qubits.
+
+Inferring ancilla roles from the operation pattern would be unreliable. Therefore, the estimator continues to report zero until ancilla information is represented explicitly.
+
+Future ancilla conventions must distinguish:
+
+- clean ancillas,
+- dirty or borrowed ancillas,
+- circuit-level workspace,
+- decomposition ancillas,
+- syndrome-extraction qubits,
+- and physical fault-tolerant resources.
 
 ### `depth`
 
@@ -240,7 +279,7 @@ This is not parallelized circuit depth.
 
 ### `parallel_depth`
 
-`parallel_depth` is currently a greedy order-preserving parallelized circuit depth estimate.
+`parallel_depth` is currently a greedy parallelized circuit depth estimate.
 
 Current rule:
 
@@ -248,7 +287,7 @@ Current rule:
 parallel_depth = estimate_parallel_depth(circuit)
 ```
 
-The helper function `estimate_parallel_depth` loops through operations in circuit order and places each operation into the earliest existing layer whose occupied qubits do not overlap with the operation's qubits. If no compatible layer exists, it creates a new layer.
+The helper function places operations into compatible layers based on qubit occupancy.
 
 This model allows operations on disjoint qubits to share a layer.
 
@@ -270,9 +309,19 @@ depth = 3
 parallel_depth = 2
 ```
 
-The first two single-qubit operations can share one parallel layer. The controlled-NOT (CNOT) operation must occupy a later layer because it touches both qubits.
+The first two single-qubit operations can share one parallel layer. The controlled-NOT (CNOT) operation must occupy a different layer because it touches both qubits.
 
-This is not a globally optimized scheduler. It does not commute gates, cancel gates, reorder operations, insert swaps, account for hardware topology, or optimize across alternative valid circuit representations.
+This is not a globally optimized scheduler. It does not:
+
+- commute gates,
+- cancel gates,
+- insert swaps,
+- account for hardware topology,
+- model gate duration,
+- preserve an explicit dependency graph,
+- or optimize across alternative circuit representations.
+
+Parallel-depth behavior for synthesized compute–use–uncompute circuits should therefore be tested separately rather than inferred directly from their operation count.
 
 ## Example: empty circuit
 
@@ -291,6 +340,7 @@ ResourceEstimate(
     t_count=0,
     cnot_count=0,
     cz_count=0,
+    toffoli_count=0,
     logical_qubit_count=2,
     ancilla_count=0,
     depth=0,
@@ -320,6 +370,7 @@ ResourceEstimate(
     t_count=1,
     cnot_count=1,
     cz_count=1,
+    toffoli_count=0,
     logical_qubit_count=2,
     ancilla_count=0,
     depth=4,
@@ -327,7 +378,53 @@ ResourceEstimate(
 )
 ```
 
-The serial depth is four because the circuit has four operations. The parallelized depth is three because the first `T` operation on qubit `0` and the final `X` operation on qubit `1` can occupy the same parallel layer under the current greedy order-preserving model.
+The serial depth is four because the circuit has four operations.
+
+## Example: multi-controlled X circuit
+
+Consider a four-controlled Pauli-X circuit constructed with:
+
+```python
+circuit = build_multi_controlled_x(
+    controls=(0, 1, 2, 3),
+    target=4,
+    ancillas=(5, 6),
+    num_qubits=7,
+)
+```
+
+The clean-ancilla ladder contains five Toffoli operations:
+
+```python
+estimate = ResourceEstimator().estimate(circuit)
+```
+
+The expected logical counts are:
+
+```python
+estimate.gate_count == 5
+estimate.toffoli_count == 5
+estimate.t_count == 0
+estimate.cnot_count == 0
+estimate.cz_count == 0
+estimate.logical_qubit_count == 7
+estimate.ancilla_count == 0
+estimate.depth == 5
+```
+
+For \(m \geq 3\) controls, the implemented ladder has:
+
+\[
+N_{\text{Toffoli}} = 2m - 3.
+\]
+
+The builder itself requires \(m-2\) clean ancillas, but the estimator still reports:
+
+```python
+ancilla_count = 0
+```
+
+because ancilla roles are not retained in the generic circuit representation.
 
 ## Connectivity and routing
 
@@ -349,22 +446,25 @@ Ancilla accounting is currently implemented as a placeholder convention:
 ancilla_count = 0
 ```
 
-Default future assumption:
+Default future assumptions:
 
-- count clean ancillas only
-- document any dirty-ancilla convention explicitly before using it
-- distinguish logical ancillas from physical qubits
-- distinguish circuit-level workspace from fault-tolerant syndrome-extraction resources
+- count clean ancillas only when roles are represented explicitly,
+- document any dirty-ancilla convention before using it,
+- distinguish logical ancillas from physical qubits,
+- distinguish circuit-level workspace from fault-tolerant syndrome-extraction resources,
+- and do not infer ancilla roles from gate patterns.
 
 ## Global phase
 
-Global phase handling is not implemented yet.
+Global phase is ignored for unitary and circuit equivalence checks.
 
-Expected future convention:
+Two unitaries \(U\) and \(V\) are considered equivalent when there exists a phase \(\phi\) such that
 
-- global phase is ignored for unitary equivalence checks
+\[
+U = e^{i\phi}V.
+\]
 
-This convention must be tested and documented when equivalence checking is implemented.
+This convention belongs to verification rather than resource estimation.
 
 ## Explicit non-goals
 
@@ -398,26 +498,34 @@ The current resource model does not estimate:
 
 The current estimates are logical bookkeeping estimates, not fault-tolerant resource estimates.
 
-They are useful for checking that the circuit Intermediate Representation (IR), primitive gate definitions, and estimator plumbing work correctly.
+They are useful for:
 
-They are not yet sufficient for:
+- checking circuit Intermediate Representation behavior,
+- tracking primitive logical gates,
+- comparing circuits before and after explicit transformations,
+- validating synthesized gate counts,
+- and confirming expected scaling for reference constructions.
 
-- comparing fault-tolerant architectures
-- estimating hardware requirements
-- estimating physical qubit counts
-- estimating surface-code overhead
-- estimating magic-state factory cost
-- estimating execution time
-- making claims about practical quantum advantage
+They are not sufficient for:
+
+- comparing fault-tolerant architectures,
+- estimating hardware requirements,
+- estimating physical qubit counts,
+- estimating surface-code overhead,
+- estimating magic-state factory cost,
+- estimating execution time,
+- or making claims about practical quantum advantage.
 
 ## Near-term extensions
 
 Likely next extensions include:
 
+- explicit ancilla-role metadata
 - Clifford+T decomposition counting
 - T-depth
+- dependency-aware scheduling
 - simple routing-aware estimates
 - primitive pass-based resource estimation
 - resource estimates before and after compilation passes
 - max-qubit-load diagnostics
-- documentation examples comparing serial depth and parallelized depth
+- documentation examples comparing serial and parallel depth

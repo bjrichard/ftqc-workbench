@@ -12,7 +12,8 @@ def test_resource_estimate_constructs_valid_estimate():
         t_count=1,
         cnot_count=1,
         cz_count=0,
-        logical_qubit_count=2,
+        toffoli_count=1,
+        logical_qubit_count=3,
         ancilla_count=0,
         depth=3,
         parallel_depth=2,
@@ -22,7 +23,8 @@ def test_resource_estimate_constructs_valid_estimate():
     assert estimate.t_count == 1
     assert estimate.cnot_count == 1
     assert estimate.cz_count == 0
-    assert estimate.logical_qubit_count == 2
+    assert estimate.toffoli_count == 1
+    assert estimate.logical_qubit_count == 3
     assert estimate.ancilla_count == 0
     assert estimate.depth == 3
     assert estimate.parallel_depth == 2
@@ -35,6 +37,7 @@ def test_resource_estimate_allows_none_depth():
         t_count=0,
         cnot_count=0,
         cz_count=0,
+        toffoli_count=0,
         logical_qubit_count=0,
         ancilla_count=0,
         depth=None,
@@ -50,6 +53,7 @@ def test_resource_estimate_allows_none_parallel_depth():
         t_count=0,
         cnot_count=0,
         cz_count=0,
+        toffoli_count=0,
         logical_qubit_count=0,
         ancilla_count=0,
         parallel_depth=None,
@@ -66,6 +70,7 @@ def test_resource_estimate_rejects_non_integer_gate_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
         )
 
@@ -78,6 +83,7 @@ def test_resource_estimate_rejects_non_integer_t_count():
             t_count=1.5,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
         )
 
@@ -90,6 +96,7 @@ def test_resource_estimate_rejects_non_integer_cnot_count():
             t_count=0,
             cnot_count=1.5,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
         )
 
@@ -102,6 +109,20 @@ def test_resource_estimate_rejects_non_integer_cz_count():
             t_count=0,
             cnot_count=0,
             cz_count=1.5,
+            toffoli_count=0,
+            logical_qubit_count=0,
+        )
+
+
+def test_resource_estimate_rejects_non_integer_toffoli_count():
+    """Verify that Toffoli count must be an integer."""
+    with pytest.raises(TypeError):
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            toffoli_count=1.5,
             logical_qubit_count=0,
         )
 
@@ -114,6 +135,7 @@ def test_resource_estimate_rejects_non_integer_logical_qubit_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=1.5,
         )
 
@@ -126,6 +148,7 @@ def test_resource_estimate_rejects_non_integer_ancilla_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
             ancilla_count=1.5,
         )
@@ -139,6 +162,7 @@ def test_resource_estimate_rejects_non_integer_depth():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
             depth=1.5,
         )
@@ -152,6 +176,7 @@ def test_resource_estimate_rejects_non_integer_parallel_depth():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
             parallel_depth=1.5,
         )
@@ -165,6 +190,7 @@ def test_resource_estimate_rejects_negative_gate_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
         )
 
@@ -177,6 +203,7 @@ def test_resource_estimate_rejects_negative_t_count():
             t_count=-1,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
         )
 
@@ -189,6 +216,7 @@ def test_resource_estimate_rejects_negative_cnot_count():
             t_count=0,
             cnot_count=-1,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
         )
 
@@ -201,6 +229,20 @@ def test_resource_estimate_rejects_negative_cz_count():
             t_count=0,
             cnot_count=0,
             cz_count=-1,
+            toffoli_count=0,
+            logical_qubit_count=0,
+        )
+
+
+def test_resource_estimate_rejects_negative_toffoli_count():
+    """Verify that negative Toffoli counts are rejected."""
+    with pytest.raises(ValueError):
+        ResourceEstimate(
+            gate_count=0,
+            t_count=0,
+            cnot_count=0,
+            cz_count=0,
+            toffoli_count=-1,
             logical_qubit_count=0,
         )
 
@@ -213,6 +255,7 @@ def test_resource_estimate_rejects_negative_logical_qubit_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=-1,
         )
 
@@ -225,6 +268,7 @@ def test_resource_estimate_rejects_negative_ancilla_count():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
             ancilla_count=-1,
         )
@@ -238,6 +282,7 @@ def test_resource_estimate_rejects_negative_depth():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
             depth=-1,
         )
@@ -251,6 +296,7 @@ def test_resource_estimate_rejects_negative_parallel_depth():
             t_count=0,
             cnot_count=0,
             cz_count=0,
+            toffoli_count=0,
             logical_qubit_count=0,
             parallel_depth=-1,
         )
@@ -263,7 +309,8 @@ def test_resource_estimate_is_immutable():
         t_count=1,
         cnot_count=1,
         cz_count=0,
-        logical_qubit_count=2,
+        toffoli_count=1,
+        logical_qubit_count=3,
         ancilla_count=0,
         depth=3,
         parallel_depth=2,
