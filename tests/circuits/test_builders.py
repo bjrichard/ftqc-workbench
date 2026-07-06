@@ -1,5 +1,7 @@
 import pytest
 
+import random
+
 from qc_compiler.circuits import (
     Circuit,
     Operation,
@@ -142,3 +144,73 @@ def test_multi_controlled_x_matches_clean_ancilla_truth_table(
         result = simulate_basis_state(circuit, basis_index)
 
         assert result == expected
+
+
+@pytest.mark.parametrize("num_controls", [8, 16])
+def test_large_multi_controlled_x_matches_random_clean_ancilla_inputs(
+    num_controls: int,
+) -> None:
+    """Match expected behavior on randomized large clean-ancilla inputs."""
+    controls = tuple(range(num_controls))
+    target = num_controls
+    ancillas = tuple(range(num_controls + 1, 2 * num_controls - 1))
+    num_qubits = 2 * num_controls - 1
+
+    circuit = build_multi_controlled_x(
+        controls=controls,
+        target=target,
+        ancillas=ancillas,
+        num_qubits=num_qubits,
+    )
+
+    rng = random.Random(20260706 + num_controls)
+
+    for _ in range(100):
+        basis_index = _random_clean_ancilla_basis_index(
+            num_qubits=num_qubits,
+            ancillas=ancillas,
+            rng=rng,
+        )
+
+        expected = _expected_multi_controlled_x_result(
+            basis_index=basis_index,
+            controls=controls,
+            target=target,
+        )
+
+        result = simulate_basis_state(circuit, basis_index)
+
+        assert result == expected
+
+
+def _expected_multi_controlled_x_result(
+    basis_index: int,
+    controls: tuple[int, ...],
+    target: int,
+) -> int:
+    """Return the expected basis index after a multi-controlled Pauli-X."""
+    all_controls_are_one = all(
+        ((basis_index >> control) & 1) == 1
+        for control in controls
+    )
+
+    return (
+        basis_index ^ (1 << target)
+        if all_controls_are_one
+        else basis_index
+    )
+
+
+def _random_clean_ancilla_basis_index(
+    *,
+    num_qubits: int,
+    ancillas: tuple[int, ...],
+    rng: random.Random,
+) -> int:
+    """Generate a random basis index with every ancilla initialized to zero."""
+    basis_index = rng.randrange(2**num_qubits)
+
+    for ancilla in ancillas:
+        basis_index &= ~(1 << ancilla)
+
+    return basis_index
