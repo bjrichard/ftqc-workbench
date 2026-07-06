@@ -6,6 +6,23 @@ Implement and verify one reversible ripple-carry-style integer adder for the FTQ
 
 The adder should become the second required primitive family after the clean-ancilla multi-controlled Pauli-X construction.
 
+## Selected construction
+
+The selected construction is the Cuccaro-Draper-Kutin-Moulton ripple-carry adder from “A new quantum ripple-carry addition circuit” (`quant-ph/0410184`).
+
+The first implementation will target in-place modular addition:
+
+\[
+|a\rangle |b\rangle \mapsto |a\rangle |a+b \bmod 2^n\rangle.
+\]
+
+The implementation will use the project’s existing reversible primitive gates:
+
+- Controlled-NOT (CNOT)
+- Toffoli
+
+The first implementation will not expose a carry-in or carry-out interface. Those variants can be added later after the base modular adder is verified.
+
 ## Candidate construction
 
 Default construction: Cuccaro-style ripple-carry adder.
@@ -79,7 +96,7 @@ Record:
 
 - logical qubit count
 - gate count
-- CNOT count
+- Controlled-NOT (CNOT) count
 - Toffoli count
 - T count
 - serial depth
@@ -88,20 +105,25 @@ Record:
 
 ## Open decisions
 
-- exact Cuccaro variant to implement
-- whether to include an incoming carry qubit
-- whether to expose a final carry-out qubit
-- whether the operation should be modular addition or full addition with carry-out
 - exact register ordering
-- exact source citation and relationship to the implemented circuit
+- whether the implementation should first build an internal non-modular full adder and then expose only the modular interface
+- exact relationship between the implemented circuit and the source circuit diagram
+- whether helper functions should expose majority and unmajority operations directly
+
+## Deferred variants
+
+- carry-in addition
+- carry-out addition
+- non-modular addition with explicit overflow qubit
+- controlled addition
+- subtraction
 
 ## Out of scope for the first adder
 
-- subtraction
-- controlled addition
 - modular reduction
 - multiplication
 - quantum Fourier transform adders
 - dirty-ancilla arithmetic
 - Clifford+T decomposition of Toffoli
 - routing-aware arithmetic costs
+- physical fault-tolerant resource estimation

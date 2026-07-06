@@ -43,3 +43,17 @@ the paper’s complete decomposition into one- and two-qubit elementary gates.
 - Clifford+T decomposition cost and T-depth are not modeled.
 - Alternative constructions with different ancilla, gate-count, or depth
   tradeoffs are not implemented.
+
+## Cuccaro ripple-carry adder
+
+S. A. Cuccaro, T. G. Draper, S. A. Kutin, and D. P. Moulton,
+“A new quantum ripple-carry addition circuit,” arXiv:quant-ph/0410184
+(2004).
+
+This project will use the Cuccaro-Draper-Kutin-Moulton ripple-carry adder as
+the source for the first reversible integer-adder primitive.
+
+The intended implementation is an educational implementation of the in-place
+modular adder using the project’s existing Controlled-NOT (CNOT) and Toffoli
+gates. The first implementation will not model Clifford+T decomposition,
+T-depth, routing, physical qubits, or fault-tolerant execution cost.
