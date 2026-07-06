@@ -6,6 +6,12 @@ Implement and verify one reversible ripple-carry-style integer adder for the FTQ
 
 The adder should become the second required primitive family after the clean-ancilla multi-controlled Pauli-X construction.
 
+## Candidate construction
+
+Default construction: Cuccaro-style ripple-carry adder.
+
+The implementation should be treated as a sourced reversible arithmetic primitive, not as an original adder design.
+
 ## Selected construction
 
 The selected construction is the Cuccaro-Draper-Kutin-Moulton ripple-carry adder from “A new quantum ripple-carry addition circuit” (`quant-ph/0410184`).
@@ -23,11 +29,30 @@ The implementation will use the project’s existing reversible primitive gates:
 
 The first implementation will not expose a carry-in or carry-out interface. Those variants can be added later after the base modular adder is verified.
 
-## Candidate construction
+## Proposed builder API
 
-Default construction: Cuccaro-style ripple-carry adder.
+The first adder builder should expose the clean work qubit explicitly:
 
-The implementation should be treated as a sourced reversible arithmetic primitive, not as an original adder design.
+```python
+build_cuccaro_adder(
+    a: tuple[int, ...],
+    b: tuple[int, ...],
+    carry: int,
+    *,
+    num_qubits: int,
+) -> Circuit
+```
+
+The registers `a` and `b` must have equal nonzero length. The `carry` qubit is a clean work qubit that must begin in \(|0\rangle\) and should be restored to \(|0\rangle\).
+
+The intended operation is modular in-place addition:
+
+\[
+|a\rangle |b\rangle |0\rangle \mapsto
+|a\rangle |a+b \bmod 2^n\rangle |0\rangle.
+\]
+
+The initial implementation should not expose carry-in or carry-out behavior.
 
 ## Intended behavior
 
@@ -45,7 +70,7 @@ Tentative layout:
 
 - `a`: n qubits
 - `b`: n qubits
-- carry/work qubits: to be determined after reading the source construction
+- carry/work qubits: one explicitly provided clean work qubit
 
 The exact qubit ordering should be fixed before implementation.
 
@@ -96,7 +121,7 @@ Record:
 
 - logical qubit count
 - gate count
-- Controlled-NOT (CNOT) count
+- CNOT count
 - Toffoli count
 - T count
 - serial depth
@@ -105,25 +130,24 @@ Record:
 
 ## Open decisions
 
+- exact Cuccaro variant to implement
 - exact register ordering
-- whether the implementation should first build an internal non-modular full adder and then expose only the modular interface
-- exact relationship between the implemented circuit and the source circuit diagram
-- whether helper functions should expose majority and unmajority operations directly
+- exact source citation and relationship to the implemented circuit
 
-## Deferred variants
+Resolved decisions:
 
-- carry-in addition
-- carry-out addition
-- non-modular addition with explicit overflow qubit
-- controlled addition
-- subtraction
+- use Cuccaro-Draper-Kutin-Moulton as the source construction
+- implement modular in-place addition first
+- expose one clean work qubit explicitly
+- do not expose carry-in or carry-out in the first implementation
 
 ## Out of scope for the first adder
 
+- subtraction
+- controlled addition
 - modular reduction
 - multiplication
 - quantum Fourier transform adders
 - dirty-ancilla arithmetic
 - Clifford+T decomposition of Toffoli
 - routing-aware arithmetic costs
-- physical fault-tolerant resource estimation
