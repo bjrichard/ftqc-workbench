@@ -133,3 +133,26 @@ Remaining useful Week 7 work:
 - ensure benchmark reproduction commands are clear
 - run full tests and linting
 - perform end-of-week scope review
+
+## End-of-week review
+
+1. What was completed?
+   - Multi-controlled Pauli-X benchmark infrastructure, saved benchmark results, benchmark documentation, source documentation, and deterministic randomized large-size verification.
+
+2. What is behind schedule?
+   - Nothing material.
+
+3. What should be cut?
+   - Nothing from the current Week 7 scope.
+
+4. What should move to backlog?
+   - Dirty-ancilla constructions, relative-phase Toffoli variants, Toffoli decomposition into Clifford+T, T-depth, routing-aware estimates, and circuit composition remain deferred.
+
+5. What is next week’s main deliverable?
+   - Begin the integer adder primitive path, starting with source selection and a minimal reversible adder specification.
+
+6. Did any result suggest a publishable angle?
+   - No. The result is a solid benchmarked primitive-family implementation, but not yet a novel research contribution.
+
+7. Do any scope-cut triggers apply?
+   - No.
