@@ -7,13 +7,13 @@ P. Shor, T. Sleator, J. A. Smolin, and H. Weinfurter, “Elementary gates
 for quantum computation,” *Physical Review A*, 52, 3457–3467 (1995).
 arXiv:quant-ph/9503016. DOI: 10.1103/PhysRevA.52.3457.
 
-The paper develops generalized controlled-unitary and Deutsch–Toffoli gate
-constructions and analyzes their decomposition into smaller gates.  [oai_citation:0‡arXiv](https://arxiv.org/abs/quant-ph/9503016)
+The paper develops generalized controlled-unitary and Deutsch-Toffoli gate
+constructions and analyzes their decomposition into smaller gates.
 
 ### Construction used in this project
 
 The workbench implements a simplified educational clean-ancilla
-compute–use–uncompute construction for a multi-controlled Pauli-X operation.
+compute-use-uncompute construction for a multi-controlled Pauli-X operation.
 
 For \(k \geq 3\) controls, the implementation:
 
