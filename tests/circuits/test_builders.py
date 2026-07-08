@@ -184,8 +184,8 @@ def test_large_multi_controlled_x_matches_random_clean_ancilla_inputs(
         assert result == expected
 
 
-def test_build_cuccaro_adder_returns_circuit_for_one_bit_registers() -> None:
-    """Build a circuit for the smallest valid Cuccaro adder registers."""
+def test_build_cuccaro_adder_with_one_bit_registers() -> None:
+    """Build a CNOT for one-bit modular addition."""
     circuit = build_cuccaro_adder(
         a=(0,),
         b=(1,),
@@ -193,7 +193,17 @@ def test_build_cuccaro_adder_returns_circuit_for_one_bit_registers() -> None:
         num_qubits=3,
     )
 
-    assert isinstance(circuit, Circuit)
+    expected = Circuit(
+        num_qubits=3,
+        operations=(
+            Operation(
+                gate=CNOT,
+                qubits=(0, 1),
+            ),
+        ),
+    )
+
+    assert circuit == expected
 
 
 @pytest.mark.parametrize(

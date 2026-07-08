@@ -266,4 +266,15 @@ def build_cuccaro_adder(
                 f"Qubit index {qubit} is not in the quantum register."
             )
 
+    if len(a) == 1:
+        return Circuit(
+            num_qubits=num_qubits,
+            operations=(
+                Operation(
+                    gate=CNOT,
+                    qubits=(a[0], b[0]),
+                    ),
+                ),
+        )
+
     return Circuit(num_qubits=num_qubits)
