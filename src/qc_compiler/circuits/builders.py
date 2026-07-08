@@ -201,7 +201,8 @@ def build_cuccaro_adder(
     Returns
     -------
     Circuit
-        Circuit placeholder for the Cuccaro-style in-place modular adder.
+        Circuit implementing the currently supported one- or two-bit in-place
+        modular adder cases.
 
     Raises
     ------
@@ -273,8 +274,30 @@ def build_cuccaro_adder(
                 Operation(
                     gate=CNOT,
                     qubits=(a[0], b[0]),
-                    ),
                 ),
+            ),
         )
 
-    return Circuit(num_qubits=num_qubits)
+    if len(a) == 2:
+        return Circuit(
+            num_qubits=num_qubits,
+            operations=(
+                Operation(
+                    gate=TOFFOLI,
+                    qubits=(a[0], b[0], b[1]),
+                ),
+                Operation(
+                    gate=CNOT,
+                    qubits=(a[1], b[1]),
+                ),
+                Operation(
+                    gate=CNOT,
+                    qubits=(a[0], b[0]),
+                ),
+            ),
+        )
+
+    raise NotImplementedError(
+        "Cuccaro adder synthesis is currently implemented only for "
+        "one- and two-bit registers."
+    )

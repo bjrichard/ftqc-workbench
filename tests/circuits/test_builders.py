@@ -206,6 +206,38 @@ def test_build_cuccaro_adder_with_one_bit_registers() -> None:
     assert circuit == expected
 
 
+def test_build_cuccaro_adder_matches_two_bit_truth_table() -> None:
+    """Match two-bit modular addition on every clean-carry basis state."""
+    a = (0, 1)
+    b = (2, 3)
+    carry = 4
+    num_qubits = 5
+
+    circuit = build_cuccaro_adder(
+        a=a,
+        b=b,
+        carry=carry,
+        num_qubits=num_qubits,
+    )
+
+    for initial_a in range(2 ** len(a)):
+        for initial_b in range(2 ** len(b)):
+            basis_index = _basis_index_from_registers(
+                a_value=initial_a,
+                b_value=initial_b,
+                a=a,
+                b=b,
+            )
+
+            result = simulate_basis_state(circuit, basis_index)
+
+            assert _register_value(result, a) == initial_a
+            assert _register_value(result, b) == (
+                initial_a + initial_b
+            ) % (2 ** len(b))
+            assert ((result >> carry) & 1) == 0
+
+
 @pytest.mark.parametrize(
     ("a", "b", "carry", "num_qubits", "error_type", "message"),
     [
@@ -288,5 +320,37 @@ def _random_clean_ancilla_basis_index(
 
     for ancilla in ancillas:
         basis_index &= ~(1 << ancilla)
+
+    return basis_index
+
+
+def _register_value(
+    basis_index: int,
+    register: tuple[int, ...],
+) -> int:
+    """Return the integer encoded by a little-endian qubit register."""
+    value = 0
+
+    for bit_position, qubit in enumerate(register):
+        value |= ((basis_index >> qubit) & 1) << bit_position
+
+    return value
+
+
+def _basis_index_from_registers(
+    *,
+    a_value: int,
+    b_value: int,
+    a: tuple[int, ...],
+    b: tuple[int, ...],
+) -> int:
+    """Return a basis index encoding little-endian a and b registers."""
+    basis_index = 0
+
+    for bit_position, qubit in enumerate(a):
+        basis_index |= ((a_value >> bit_position) & 1) << qubit
+
+    for bit_position, qubit in enumerate(b):
+        basis_index |= ((b_value >> bit_position) & 1) << qubit
 
     return basis_index
