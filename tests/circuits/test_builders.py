@@ -1,10 +1,11 @@
-import pytest
-
 import random
+
+import pytest
 
 from qc_compiler.circuits import (
     Circuit,
     Operation,
+    build_cuccaro_adder,
     build_multi_controlled_x,
 )
 from qc_compiler.gates import CNOT, TOFFOLI
@@ -181,6 +182,71 @@ def test_large_multi_controlled_x_matches_random_clean_ancilla_inputs(
         result = simulate_basis_state(circuit, basis_index)
 
         assert result == expected
+
+
+def test_build_cuccaro_adder_returns_circuit_for_one_bit_registers() -> None:
+    """Build a circuit for the smallest valid Cuccaro adder registers."""
+    circuit = build_cuccaro_adder(
+        a=(0,),
+        b=(1,),
+        carry=2,
+        num_qubits=3,
+    )
+
+    assert isinstance(circuit, Circuit)
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "carry", "num_qubits", "error_type", "message"),
+    [
+        ([0], (1,), 2, 3, TypeError, "a must be a tuple."),
+        ((0,), [1], 2, 3, TypeError, "b must be a tuple."),
+        ((0,), (1,), True, 3, TypeError, "carry must be an integer."),
+        ((0,), (1,), 2, True, TypeError, "num_qubits must be an integer."),
+        ((True,), (1,), 2, 3, TypeError, "a qubit indices must be integers."),
+        ((0,), (False,), 2, 3, TypeError, "b qubit indices must be integers."),
+        ((), (), 0, 1, ValueError, "a and b must be nonempty."),
+        ((0,), (1, 2), 3, 4, ValueError, "a and b must have equal length."),
+        ((0, 0), (1, 2), 3, 4, ValueError, "a qubits must be distinct."),
+        ((0, 1), (2, 2), 3, 4, ValueError, "b qubits must be distinct."),
+        ((0,), (0,), 2, 3, ValueError, "a and b must be disjoint."),
+        ((0,), (1,), 0, 3, ValueError, "carry must be distinct from a."),
+        ((0,), (1,), 1, 3, ValueError, "carry must be distinct from b."),
+        (
+            (0,),
+            (1,),
+            3,
+            3,
+            ValueError,
+            "Qubit index 3 is not in the quantum register.",
+        ),
+        (
+            (-1,),
+            (1,),
+            2,
+            3,
+            ValueError,
+            "Qubit index -1 is not in the quantum register.",
+        ),
+        ((0,), (1,), 2, 0, ValueError, "num_qubits must be positive."),
+    ],
+)
+def test_build_cuccaro_adder_rejects_invalid_inputs(
+    a: object,
+    b: object,
+    carry: object,
+    num_qubits: object,
+    error_type: type[Exception],
+    message: str,
+) -> None:
+    """Reject invalid Cuccaro adder register specifications."""
+    with pytest.raises(error_type, match=message):
+        build_cuccaro_adder(
+            a=a,  # type: ignore[arg-type]
+            b=b,  # type: ignore[arg-type]
+            carry=carry,  # type: ignore[arg-type]
+            num_qubits=num_qubits,  # type: ignore[arg-type]
+        )
 
 
 def _expected_multi_controlled_x_result(

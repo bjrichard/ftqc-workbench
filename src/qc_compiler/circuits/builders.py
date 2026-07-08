@@ -173,3 +173,97 @@ def build_multi_controlled_x(
         num_qubits=num_qubits,
         operations=operations,
     )
+
+
+def build_cuccaro_adder(
+    a: tuple[int, ...],
+    b: tuple[int, ...],
+    carry: int,
+    *,
+    num_qubits: int,
+) -> Circuit:
+    """Construct a Cuccaro-style in-place ripple-carry adder.
+
+    Parameters
+    ----------
+    a
+        Ordered tuple of distinct qubit indices for the preserved input
+        register.
+    b
+        Ordered tuple of distinct qubit indices for the register overwritten
+        by the modular sum.
+    carry
+        Clean work-qubit index. The qubit is assumed to begin in ``|0>`` and
+        must be restored to ``|0>``.
+    num_qubits
+        Number of qubits in the circuit register.
+
+    Returns
+    -------
+    Circuit
+        Circuit placeholder for the Cuccaro-style in-place modular adder.
+
+    Raises
+    ------
+    TypeError
+        If an argument has the wrong type or if any qubit index is a Boolean.
+    ValueError
+        If register sizes are invalid, qubit roles overlap, or any qubit index
+        is outside the circuit register.
+
+    Notes
+    -----
+    This initial implementation pins down validation and the public API before
+    adding the Cuccaro majority/unmajority synthesis sequence.
+    """
+    if not isinstance(a, tuple):
+        raise TypeError("a must be a tuple.")
+
+    if not isinstance(b, tuple):
+        raise TypeError("b must be a tuple.")
+
+    if isinstance(carry, bool) or not isinstance(carry, int):
+        raise TypeError("carry must be an integer.")
+
+    if isinstance(num_qubits, bool) or not isinstance(num_qubits, int):
+        raise TypeError("num_qubits must be an integer.")
+
+    if num_qubits <= 0:
+        raise ValueError("num_qubits must be positive.")
+
+    if len(a) == 0 or len(b) == 0:
+        raise ValueError("a and b must be nonempty.")
+
+    if len(a) != len(b):
+        raise ValueError("a and b must have equal length.")
+
+    for qubit in a:
+        if isinstance(qubit, bool) or not isinstance(qubit, int):
+            raise TypeError("a qubit indices must be integers.")
+
+    for qubit in b:
+        if isinstance(qubit, bool) or not isinstance(qubit, int):
+            raise TypeError("b qubit indices must be integers.")
+
+    if len(set(a)) != len(a):
+        raise ValueError("a qubits must be distinct.")
+
+    if len(set(b)) != len(b):
+        raise ValueError("b qubits must be distinct.")
+
+    if set(a) & set(b):
+        raise ValueError("a and b must be disjoint.")
+
+    if carry in a:
+        raise ValueError("carry must be distinct from a.")
+
+    if carry in b:
+        raise ValueError("carry must be distinct from b.")
+
+    for qubit in (*a, *b, carry):
+        if not 0 <= qubit < num_qubits:
+            raise ValueError(
+                f"Qubit index {qubit} is not in the quantum register."
+            )
+
+    return Circuit(num_qubits=num_qubits)
