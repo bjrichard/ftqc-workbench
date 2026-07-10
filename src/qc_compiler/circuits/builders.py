@@ -188,21 +188,26 @@ def build_cuccaro_adder(
     ----------
     a
         Ordered tuple of distinct qubit indices for the preserved input
-        register.
+        register. The tuple position gives the register bit position, with
+        ``a[0]`` interpreted as the least-significant bit.
     b
         Ordered tuple of distinct qubit indices for the register overwritten
-        by the modular sum.
+        by the modular sum. The tuple position gives the register bit
+        position, with ``b[0]`` interpreted as the least-significant bit.
     carry
         Clean work-qubit index. The qubit is assumed to begin in ``|0>`` and
-        must be restored to ``|0>``.
+        is restored to ``|0>``.
     num_qubits
         Number of qubits in the circuit register.
 
     Returns
     -------
     Circuit
-        Circuit implementing the currently supported one- or two-bit in-place
-        modular adder cases.
+        Circuit implementing in-place modular addition,
+
+        ``|a>|b>|0> -> |a>|a + b mod 2**n>|0>``,
+
+        for equal-width input registers.
 
     Raises
     ------
@@ -214,8 +219,12 @@ def build_cuccaro_adder(
 
     Notes
     -----
-    This initial implementation pins down validation and the public API before
-    adding the Cuccaro majority/unmajority synthesis sequence.
+    The one-bit and two-bit cases use compact specialized circuits. For three
+    or more bits, the implementation uses Cuccaro-style majority and
+    unmajority-and-add blocks.
+
+    The implementation is modular: it discards the final overflow bit and
+    writes the result modulo ``2**len(b)`` into ``b``.
     """
     if not isinstance(a, tuple):
         raise TypeError("a must be a tuple.")
@@ -297,7 +306,138 @@ def build_cuccaro_adder(
             ),
         )
 
-    raise NotImplementedError(
-        "Cuccaro adder synthesis is currently implemented only for "
-        "one- and two-bit registers."
+    operations: list[Operation] = []
+
+    _append_majority(
+        operations=operations,
+        carry=carry,
+        b=b[0],
+        a=a[0],
+    )
+
+    for bit_index in range(1, len(a)):
+        _append_majority(
+            operations=operations,
+            carry=a[bit_index - 1],
+            b=b[bit_index],
+            a=a[bit_index],
+        )
+
+    for bit_index in reversed(range(1, len(a))):
+        _append_unmajority_and_add(
+            operations=operations,
+            carry=a[bit_index - 1],
+            b=b[bit_index],
+            a=a[bit_index],
+        )
+
+    _append_unmajority_and_add(
+        operations=operations,
+        carry=carry,
+        b=b[0],
+        a=a[0],
+    )
+
+    return Circuit(
+        num_qubits=num_qubits,
+        operations=tuple(operations),
+    )
+
+
+def _append_majority(
+    operations: list[Operation],
+    carry: int,
+    b: int,
+    a: int,
+) -> None:
+    """Append a Cuccaro majority block.
+
+    Parameters
+    ----------
+    operations
+        Mutable operation list receiving the majority block.
+    carry
+        Qubit currently storing the incoming carry bit.
+    b
+        Qubit storing the current bit of the overwritten addend register.
+    a
+        Qubit storing the current bit of the preserved addend register.
+
+    Returns
+    -------
+    None
+        The function mutates ``operations`` in place.
+
+    Notes
+    -----
+    The block maps the outgoing carry into the ``a`` line. In the ripple
+    sequence, that line is then used as the carry input for the next more
+    significant bit.
+    """
+    operations.append(
+        Operation(
+            gate=CNOT,
+            qubits=(a, b),
+        )
+    )
+    operations.append(
+        Operation(
+            gate=CNOT,
+            qubits=(a, carry),
+        )
+    )
+    operations.append(
+        Operation(
+            gate=TOFFOLI,
+            qubits=(carry, b, a),
+        )
+    )
+
+
+def _append_unmajority_and_add(
+    operations: list[Operation],
+    carry: int,
+    b: int,
+    a: int,
+) -> None:
+    """Append a Cuccaro unmajority-and-add block.
+
+    Parameters
+    ----------
+    operations
+        Mutable operation list receiving the unmajority-and-add block.
+    carry
+        Qubit storing the incoming carry for this bit position.
+    b
+        Qubit storing the current bit of the overwritten addend register.
+    a
+        Qubit storing the current bit of the preserved addend register.
+
+    Returns
+    -------
+    None
+        The function mutates ``operations`` in place.
+
+    Notes
+    -----
+    The block reverses the corresponding majority computation, restores the
+    ``a`` line, and writes the sum bit into the ``b`` line.
+    """
+    operations.append(
+        Operation(
+            gate=TOFFOLI,
+            qubits=(carry, b, a),
+        )
+    )
+    operations.append(
+        Operation(
+            gate=CNOT,
+            qubits=(a, carry),
+        )
+    )
+    operations.append(
+        Operation(
+            gate=CNOT,
+            qubits=(carry, b),
+        )
     )

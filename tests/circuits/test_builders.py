@@ -206,12 +206,15 @@ def test_build_cuccaro_adder_with_one_bit_registers() -> None:
     assert circuit == expected
 
 
-def test_build_cuccaro_adder_matches_two_bit_truth_table() -> None:
-    """Match two-bit modular addition on every clean-carry basis state."""
-    a = (0, 1)
-    b = (2, 3)
-    carry = 4
-    num_qubits = 5
+@pytest.mark.parametrize("num_bits", [2, 3])
+def test_build_cuccaro_adder_matches_truth_table(
+    num_bits: int,
+) -> None:
+    """Match modular addition on every clean-carry basis state."""
+    a = tuple(range(num_bits))
+    b = tuple(range(num_bits, 2 * num_bits))
+    carry = 2 * num_bits
+    num_qubits = 2 * num_bits + 1
 
     circuit = build_cuccaro_adder(
         a=a,
