@@ -241,6 +241,45 @@ def test_build_cuccaro_adder_matches_truth_table(
             assert ((result >> carry) & 1) == 0
 
 
+@pytest.mark.parametrize("num_bits", [4, 8, 16])
+def test_large_cuccaro_adder_matches_random_clean_carry_inputs(
+    num_bits: int,
+) -> None:
+    """Match modular addition on randomized large clean-carry inputs."""
+    a = tuple(range(num_bits))
+    b = tuple(range(num_bits, 2 * num_bits))
+    carry = 2 * num_bits
+    num_qubits = 2 * num_bits + 1
+
+    circuit = build_cuccaro_adder(
+        a=a,
+        b=b,
+        carry=carry,
+        num_qubits=num_qubits,
+    )
+
+    rng = random.Random(20260710 + num_bits)
+
+    for _ in range(100):
+        initial_a = rng.randrange(2**num_bits)
+        initial_b = rng.randrange(2**num_bits)
+
+        basis_index = _basis_index_from_registers(
+            a_value=initial_a,
+            b_value=initial_b,
+            a=a,
+            b=b,
+        )
+
+        result = simulate_basis_state(circuit, basis_index)
+
+        assert _register_value(result, a) == initial_a
+        assert _register_value(result, b) == (
+            initial_a + initial_b
+        ) % (2**num_bits)
+        assert ((result >> carry) & 1) == 0
+
+
 @pytest.mark.parametrize(
     ("a", "b", "carry", "num_qubits", "error_type", "message"),
     [
