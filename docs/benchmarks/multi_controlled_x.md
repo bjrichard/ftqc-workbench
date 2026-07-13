@@ -60,14 +60,14 @@ resource estimator reports an ancilla count of zero.
 
 ## Results
 
-| Controls | Clean ancillas | Logical qubits | Gates | T gates | CNOT gates | Toffoli gates | Serial depth | Parallel depth |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2 | 0 | 3 | 1 | 0 | 0 | 1 | 1 | 1 |
-| 3 | 1 | 5 | 3 | 0 | 0 | 3 | 3 | 3 |
-| 4 | 2 | 7 | 5 | 0 | 0 | 5 | 5 | 5 |
-| 5 | 3 | 9 | 7 | 0 | 0 | 7 | 7 | 7 |
-| 8 | 6 | 15 | 13 | 0 | 0 | 13 | 13 | 13 |
-| 16 | 14 | 31 | 29 | 0 | 0 | 29 | 29 | 29 |
+| Controls | Clean ancillas | Logical qubits | Gates | T gates | Expanded T gates | CNOT gates | Toffoli gates | Serial depth | Parallel depth |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 0 | 3 | 1 | 0 | 7 | 0 | 1 | 1 | 1 |
+| 3 | 1 | 5 | 3 | 0 | 21 | 0 | 3 | 3 | 3 |
+| 4 | 2 | 7 | 5 | 0 | 35 | 0 | 5 | 5 | 5 |
+| 5 | 3 | 9 | 7 | 0 | 49 | 0 | 7 | 7 | 7 |
+| 8 | 6 | 15 | 13 | 0 | 91 | 0 | 13 | 13 | 13 |
+| 16 | 14 | 31 | 29 | 0 | 203 | 0 | 29 | 29 | 29 |
 
 ## Scaling
 
@@ -101,17 +101,35 @@ The current construction exposes no parallelism under the implemented depth
 model because successive Toffoli operations are connected through shared
 controls or ancillas.
 
+Under the default analytical Toffoli expansion convention,
+
+\[
+1\ \mathrm{Toffoli} = 7\ T,
+\]
+
+the expanded T-count is:
+
+\[
+N_T^{\mathrm{expanded}} = 7(2k - 3).
+\]
+
 ## Interpretation
 
-The benchmark treats Toffoli as a primitive logical gate. Consequently:
+The benchmark reports both primitive and expanded T-counts.
 
-- T-count is zero
-- CNOT count is zero
-- Toffoli decomposition cost is not included
-- T-depth is not estimated
+The `T gates` column is the primitive explicit T-gate count: it counts only T
+gates that appear directly in the circuit Intermediate Representation (IR).
 
-These results describe the implemented high-level circuit construction, not
-its eventual Clifford+T or physical fault-tolerant cost.
+The `Expanded T gates` column analytically charges each primitive Toffoli gate
+the default Toffoli expansion cost:
+
+\[
+1\ \mathrm{Toffoli} = 7\ T.
+\]
+
+This does not mutate or decompose the circuit. It is a first-order analytical
+cost convention, not a full Clifford+T circuit, T-depth estimate, or physical
+fault-tolerant resource estimate.
 
 ## Limitations
 
@@ -119,7 +137,7 @@ The benchmark does not include:
 
 - dirty-ancilla constructions
 - relative-phase Toffoli variants
-- Toffoli decomposition into Clifford+T
+- actual Toffoli decomposition into Clifford+T
 - T-depth
 - topology or routing
 - gate durations

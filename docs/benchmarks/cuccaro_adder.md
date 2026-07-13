@@ -61,13 +61,13 @@ resource estimator reports an ancilla count of zero.
 
 ## Results
 
-| Register bits | Clean work qubits | Logical qubits | Gates | T gates | CNOT gates | Toffoli gates | Serial depth | Parallel depth |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| 2 | 1 | 5 | 3 | 0 | 2 | 1 | 3 | 2 |
-| 3 | 1 | 7 | 18 | 0 | 12 | 6 | 18 | 16 |
-| 4 | 1 | 9 | 24 | 0 | 16 | 8 | 24 | 21 |
-| 8 | 1 | 17 | 48 | 0 | 32 | 16 | 48 | 41 |
-| 16 | 1 | 33 | 96 | 0 | 64 | 32 | 96 | 81 |
+| Register bits | Clean work qubits | Logical qubits | Gates | T gates | Expanded T gates | CNOT gates | Toffoli gates | Serial depth | Parallel depth |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 1 | 5 | 3 | 0 | 7 | 2 | 1 | 3 | 2 |
+| 3 | 1 | 7 | 18 | 0 | 42 | 12 | 6 | 18 | 16 |
+| 4 | 1 | 9 | 24 | 0 | 56 | 16 | 8 | 24 | 21 |
+| 8 | 1 | 17 | 48 | 0 | 112 | 32 | 16 | 48 | 41 |
+| 16 | 1 | 33 | 96 | 0 | 224 | 64 | 32 | 96 | 81 |
 
 ## Scaling
 
@@ -107,20 +107,39 @@ The dependency-preserving parallel depth reported by the current estimator is:
 D_{\mathrm{parallel}} = 5n + 1.
 \]
 
+Under the default analytical Toffoli expansion convention,
+
+\[
+1\ \mathrm{Toffoli} = 7\ T,
+\]
+
+the expanded T-count is:
+
+\[
+N_T^{\mathrm{expanded}} = 14n.
+\]
+
 The \(n = 2\) row is a compact specialized implementation, not the general
 Cuccaro majority/unmajority-and-add sequence. It is therefore reported in the
-table but excluded from the asymptotic scaling formulas above.
+table but excluded from the general scaling formulas above.
 
 ## Interpretation
 
-The benchmark treats Toffoli as a primitive logical gate. Consequently:
+The benchmark reports both primitive and expanded T-counts.
 
-- T-count is zero
-- Toffoli decomposition cost is not included
-- T-depth is not estimated
+The `T gates` column is the primitive explicit T-gate count: it counts only T
+gates that appear directly in the circuit Intermediate Representation (IR).
 
-These results describe the implemented high-level circuit construction, not
-its eventual Clifford+T or physical fault-tolerant cost.
+The `Expanded T gates` column analytically charges each primitive Toffoli gate
+the default Toffoli expansion cost:
+
+\[
+1\ \mathrm{Toffoli} = 7\ T.
+\]
+
+This does not mutate or decompose the circuit. It is a first-order analytical
+cost convention, not a full Clifford+T circuit, T-depth estimate, or physical
+fault-tolerant resource estimate.
 
 ## Limitations
 
@@ -131,7 +150,7 @@ The benchmark does not include:
 - controlled addition
 - modular reduction
 - multiplication
-- Toffoli decomposition into Clifford+T
+- actual Toffoli decomposition into Clifford+T
 - T-depth
 - topology or routing
 - gate durations
