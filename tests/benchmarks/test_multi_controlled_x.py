@@ -25,15 +25,18 @@ def test_benchmark_matches_expected_resource_scaling(
     """Match the clean-ancilla ladder's analytical resource formulas."""
     result = benchmark_multi_controlled_x(num_controls)
 
+    expected_toffoli_count = 2 * num_controls - 3
+
     assert result.required_clean_ancillas == num_controls - 2
     assert result.logical_qubit_count == 2 * num_controls - 1
-    assert result.gate_count == 2 * num_controls - 3
-    assert result.toffoli_count == 2 * num_controls - 3
+    assert result.gate_count == expected_toffoli_count
+    assert result.toffoli_count == expected_toffoli_count
     assert result.t_count == 0
+    assert result.expanded_t_count == 7 * expected_toffoli_count
     assert result.cnot_count == 0
-    assert result.serial_depth == 2 * num_controls - 3
-    assert result.parallel_depth == 2 * num_controls - 3
-
+    assert result.serial_depth == expected_toffoli_count
+    assert result.parallel_depth == expected_toffoli_count
+    
 
 def test_run_benchmarks_preserves_control_count_order() -> None:
     """Return benchmark rows in the configured order."""

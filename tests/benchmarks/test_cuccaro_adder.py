@@ -36,6 +36,7 @@ def test_benchmark_cuccaro_adder_matches_expected_counts_for_special_case() -> N
         logical_qubit_count=5,
         gate_count=3,
         t_count=0,
+        expanded_t_count=7,
         cnot_count=2,
         toffoli_count=1,
         serial_depth=3,
@@ -53,6 +54,7 @@ def test_benchmark_cuccaro_adder_matches_expected_counts_for_general_case() -> N
         logical_qubit_count=9,
         gate_count=24,
         t_count=0,
+        expanded_t_count=56,
         cnot_count=16,
         toffoli_count=8,
         serial_depth=24,
@@ -77,6 +79,7 @@ def test_write_benchmark_csv_emits_expected_header_and_rows() -> None:
             logical_qubit_count=5,
             gate_count=3,
             t_count=0,
+            expanded_t_count=7,
             cnot_count=2,
             toffoli_count=1,
             serial_depth=3,
@@ -88,9 +91,9 @@ def test_write_benchmark_csv_emits_expected_header_and_rows() -> None:
 
     assert output.getvalue() == (
         "num_bits,required_clean_work_qubits,logical_qubit_count,"
-        "gate_count,t_count,cnot_count,toffoli_count,serial_depth,"
-        "parallel_depth\r\n"
-        "2,1,5,3,0,2,1,3,2\r\n"
+        "gate_count,t_count,expanded_t_count,cnot_count,toffoli_count,"
+        "serial_depth,parallel_depth\r\n"
+        "2,1,5,3,0,7,2,1,3,2\r\n"
     )
 
 

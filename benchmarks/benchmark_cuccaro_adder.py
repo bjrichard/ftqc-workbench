@@ -7,7 +7,10 @@ from typing import TextIO
 
 from qc_compiler.circuits import Circuit
 from qc_compiler.circuits.builders import build_cuccaro_adder
-from qc_compiler.resources import ResourceEstimator
+from qc_compiler.resources import (
+    ResourceEstimator,
+    estimate_toffoli_expanded_resources,
+)
 
 
 REGISTER_WIDTHS: tuple[int, ...] = (2, 3, 4, 8, 16)
@@ -22,15 +25,18 @@ class CuccaroAdderBenchmarkResult:
     num_bits
         Number of bits in each input register.
     required_clean_work_qubits
-        Number of clean carry/work qubits required by the implemented
-        construction. This value is derived from the builder convention rather
-        than from ``ResourceEstimate.ancilla_count``.
+        Number of clean work qubits required by the implemented construction.
+        This value is derived from the builder convention rather than from
+        ``ResourceEstimate.ancilla_count``.
     logical_qubit_count
         Total number of logical qubit slots in the generated circuit.
     gate_count
         Total number of logical operations in the circuit.
     t_count
-        Number of primitive T gates in the circuit.
+        Number of explicit primitive T gates in the circuit.
+    expanded_t_count
+        T-count after analytically charging each primitive Toffoli gate the
+        default Toffoli expansion cost.
     cnot_count
         Number of primitive Controlled-NOT (CNOT) gates in the circuit.
     toffoli_count
@@ -47,7 +53,11 @@ class CuccaroAdderBenchmarkResult:
     represent different quantities. The current circuit Intermediate
     Representation (IR) does not retain qubit-role metadata, so the estimator
     reports an ancilla count of zero. This benchmark records the
-    construction-level clean-carry requirement explicitly.
+    construction-level clean-work requirement explicitly.
+
+    ``t_count`` is the primitive explicit T-gate count. ``expanded_t_count``
+    is an analytical companion value using the project's default Toffoli
+    expansion convention.
     """
 
     num_bits: int
@@ -55,6 +65,7 @@ class CuccaroAdderBenchmarkResult:
     logical_qubit_count: int
     gate_count: int
     t_count: int
+    expanded_t_count: int
     cnot_count: int
     toffoli_count: int
     serial_depth: int
@@ -76,7 +87,7 @@ def build_benchmark_circuit(num_bits: int) -> Circuit:
         layout. The preserved addend register ``a`` occupies indices ``0``
         through ``num_bits - 1``, the overwritten addend register ``b``
         occupies indices ``num_bits`` through ``2 * num_bits - 1``, and the
-        clean carry qubit occupies index ``2 * num_bits``.
+        clean work qubit occupies index ``2 * num_bits``.
 
     Raises
     ------
@@ -91,7 +102,7 @@ def build_benchmark_circuit(num_bits: int) -> Circuit:
 
     - ``a``: ``(0, 1, ..., num_bits - 1)``
     - ``b``: ``(num_bits, num_bits + 1, ..., 2 * num_bits - 1)``
-    - clean carry: ``2 * num_bits``
+    - clean work qubit: ``2 * num_bits``
 
     The total register size is ``2 * num_bits + 1``.
 
@@ -131,7 +142,7 @@ def benchmark_cuccaro_adder(
     Returns
     -------
     CuccaroAdderBenchmarkResult
-        Logical resource counts and construction-level clean-carry
+        Logical resource counts and construction-level clean-work
         requirements for the generated circuit.
 
     Raises
@@ -148,12 +159,13 @@ def benchmark_cuccaro_adder(
     The circuit is constructed by ``build_benchmark_circuit`` and analyzed
     using the current ``ResourceEstimator``.
 
-    The clean-carry requirement is computed from the adder construction
+    The clean-work requirement is computed from the adder construction
     convention because the current circuit Intermediate Representation (IR)
     does not retain ancilla-role metadata.
     """
     circuit = build_benchmark_circuit(num_bits)
     estimate = ResourceEstimator().estimate(circuit)
+    expanded_estimate = estimate_toffoli_expanded_resources(circuit)
 
     if estimate.depth is None or estimate.parallel_depth is None:
         raise RuntimeError("Benchmark requires depth estimates.")
@@ -164,6 +176,7 @@ def benchmark_cuccaro_adder(
         logical_qubit_count=estimate.logical_qubit_count,
         gate_count=estimate.gate_count,
         t_count=estimate.t_count,
+        expanded_t_count=expanded_estimate.expanded_t_count,
         cnot_count=estimate.cnot_count,
         toffoli_count=estimate.toffoli_count,
         serial_depth=estimate.depth,
@@ -255,6 +268,7 @@ def write_benchmark_csv(
             "logical_qubit_count",
             "gate_count",
             "t_count",
+            "expanded_t_count",
             "cnot_count",
             "toffoli_count",
             "serial_depth",
@@ -270,6 +284,7 @@ def write_benchmark_csv(
                 result.logical_qubit_count,
                 result.gate_count,
                 result.t_count,
+                result.expanded_t_count,
                 result.cnot_count,
                 result.toffoli_count,
                 result.serial_depth,
