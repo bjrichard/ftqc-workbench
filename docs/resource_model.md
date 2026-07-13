@@ -20,6 +20,7 @@ As of Week 6, the project has implemented:
 - an ancilla-count convention
 - a serial circuit depth estimate
 - a greedy parallelized circuit depth estimate
+- an analytical Toffoli-expanded T-count estimate
 
 The current estimates are logical bookkeeping estimates. They are not physical resource estimates and should not be interpreted as surface-code cost estimates, hardware runtime estimates, or practical fault-tolerant execution estimates.
 
@@ -151,6 +152,40 @@ The estimator currently computes:
 
 The estimator does not yet model decomposition, routing, scheduling, gate commutation, global depth optimization, measurement, feedforward, noise, or physical fault-tolerant overhead.
 
+## Primitive and expanded estimates
+
+The project now distinguishes between two resource-estimate layers.
+
+The primitive logical estimate is produced by `ResourceEstimator`. It counts
+exactly the gates represented in the circuit Intermediate Representation (IR).
+Under this estimate, `t_count` includes only explicit primitive `T` operations,
+and `toffoli_count` records primitive `TOFFOLI` operations without converting
+them into Clifford+T costs.
+
+The expanded logical estimate is produced by
+`estimate_toffoli_expanded_resources`. It preserves the primitive estimate and
+adds an analytical Toffoli-expanded T-count under an explicit convention.
+
+The current default convention is:
+
+\[
+1\ \mathrm{Toffoli} = 7\ T.
+\]
+
+Therefore:
+
+\[
+N_T^{\mathrm{expanded}}
+=
+N_T^{\mathrm{primitive}}
++
+7N_{\mathrm{Toffoli}}.
+\]
+
+This expanded estimate does not mutate or decompose the circuit. It does not
+estimate Clifford count, T-depth, magic-state factories, routing, physical
+qubits, code distance, or hardware runtime.
+
 ## Resource fields
 
 ### `gate_count`
@@ -175,7 +210,12 @@ Current rule:
 t_count = number of operations where operation.gate == T
 ```
 
-This is a logical T-count only. It does not include T gates that would be introduced by decomposing higher-level gates such as Toffoli.
+This is a logical T-count only. It does not include T gates that would be
+introduced by decomposing higher-level gates such as Toffoli.
+
+For Toffoli-expanded analytical T-counts, use
+`estimate_toffoli_expanded_resources` rather than interpreting `t_count` as a
+fault-tolerant T-cost.
 
 ### `cnot_count`
 
@@ -223,6 +263,21 @@ It does not convert Toffoli gates into:
 - or fault-tolerant code cycles.
 
 Those costs require an explicit decomposition and lower-level resource convention.
+
+### `expanded_t_count`
+
+`expanded_t_count` is available through `ExpandedResourceEstimate`, not through
+the primitive `ResourceEstimate`.
+
+Current rule:
+
+```python
+expanded_t_count = primitive.t_count + 7 * primitive.toffoli_count
+```
+
+This is an analytical companion count. It is not produced by decomposing the
+circuit and does not imply a specific T-depth, Clifford count, or physical
+fault-tolerant implementation.
 
 ### `logical_qubit_count`
 
@@ -517,12 +572,13 @@ The current resource model does not estimate:
 - wall-clock runtime
 - scheduled depth
 - T-depth
-- Toffoli decomposition cost
+- actual Toffoli circuit decomposition
 - arbitrary gate synthesis cost
 - gate commutation analysis
 - global circuit rescheduling
 - optimal depth under arbitrary circuit rewrites
 - hardware-aware scheduling
+- T-depth from a specific Toffoli decomposition
 
 ## Interpretation
 
