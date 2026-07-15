@@ -3,7 +3,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from qc_compiler.mitigation import mitigate_single_qubit_readout
+from qc_compiler.mitigation import (
+    mitigate_single_qubit_readout,
+    mitigate_tensor_product_readout,
+)
 
 
 def test_identity_assignment_matrix_returns_observed_probabilities() -> None:
@@ -322,4 +325,119 @@ def test_rejects_singular_assignment_matrix() -> None:
         mitigate_single_qubit_readout(
             counts={"0": 1},
             assignment_matrix=assignment_matrix,
+        )
+
+
+def test_tensor_product_identity_assignment_returns_observed_probabilities() -> None:
+    """Return observed probabilities for identity multi-qubit assignment."""
+    result = mitigate_tensor_product_readout(
+        counts={"00": 50, "01": 25, "10": 25},
+        assignment_matrices=(np.eye(2), np.eye(2)),
+    )
+
+    assert result == {
+        "00": pytest.approx(0.5),
+        "01": pytest.approx(0.25),
+        "10": pytest.approx(0.25),
+        "11": pytest.approx(0.0),
+    }
+
+
+def test_tensor_product_readout_matches_single_qubit_on_one_qubit() -> None:
+    """Match the single-qubit helper for one assignment matrix."""
+    assignment_matrix = np.array(
+        [
+            [0.9, 0.1],
+            [0.1, 0.9],
+        ],
+        dtype=float,
+    )
+
+    tensor_result = mitigate_tensor_product_readout(
+        counts={"0": 820, "1": 180},
+        assignment_matrices=(assignment_matrix,),
+    )
+    single_result = mitigate_single_qubit_readout(
+        counts={"0": 820, "1": 180},
+        assignment_matrix=assignment_matrix,
+    )
+
+    assert tensor_result == {
+        "0": pytest.approx(single_result["0"]),
+        "1": pytest.approx(single_result["1"]),
+    }
+
+
+def test_tensor_product_readout_corrects_independent_two_qubit_error() -> None:
+    """Correct a two-qubit product readout-error example."""
+    assignment_matrix = np.array(
+        [
+            [0.9, 0.1],
+            [0.1, 0.9],
+        ],
+        dtype=float,
+    )
+
+    result = mitigate_tensor_product_readout(
+        counts={
+            "00": 8100,
+            "01": 900,
+            "10": 900,
+            "11": 100,
+        },
+        assignment_matrices=(assignment_matrix, assignment_matrix),
+    )
+
+    assert result == {
+        "00": pytest.approx(1.0),
+        "01": pytest.approx(0.0),
+        "10": pytest.approx(0.0),
+        "11": pytest.approx(0.0),
+    }
+
+
+def test_tensor_product_readout_returns_all_bitstrings() -> None:
+    """Return all bitstrings for the inferred number of qubits."""
+    result = mitigate_tensor_product_readout(
+        counts={"11": 10},
+        assignment_matrices=(np.eye(2), np.eye(2)),
+    )
+
+    assert tuple(result) == ("00", "01", "10", "11")
+    assert result["11"] == pytest.approx(1.0)
+
+
+def test_tensor_product_readout_rejects_empty_assignment_matrix_tuple() -> None:
+    """Reject empty tensor-product readout models."""
+    with pytest.raises(
+        ValueError,
+        match="assignment_matrices must be nonempty.",
+    ):
+        mitigate_tensor_product_readout(
+            counts={"0": 1},
+            assignment_matrices=(),
+        )
+
+
+def test_tensor_product_readout_rejects_non_tuple_assignment_matrices() -> None:
+    """Reject non-tuple assignment-matrix collections."""
+    with pytest.raises(
+        TypeError,
+        match="assignment_matrices must be a tuple.",
+    ):
+        mitigate_tensor_product_readout(  # type: ignore[arg-type]
+            counts={"0": 1},
+            assignment_matrices=[np.eye(2)],
+        )
+
+
+def test_tensor_product_readout_rejects_wrong_bitstring_length() -> None:
+    """Reject count keys that do not match the number of assignment matrices."""
+    with pytest.raises(
+        ValueError,
+        match="count keys must have length 2.",
+    ):
+        mitigate_tensor_product_readout(
+            counts={"0": 1},
+            assignment_matrices=(np.eye(2), np.eye(2)),
         )
