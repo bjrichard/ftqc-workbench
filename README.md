@@ -9,6 +9,7 @@ The project focuses on the software layer between abstract quantum gates and ear
 - reversible primitive builders
 - logical resource estimators
 - Toffoli-expanded analytical T-count estimates
+- readout-error mitigation utilities
 - reproducible benchmarks and tests
 
 The workbench does not model physical hardware, surface-code layouts, magic-state factories, routing, or runtime. Its purpose is to make logical circuit structure, workspace assumptions, and first-order resource conventions explicit and inspectable. The emphasis is on explicit conventions, testable abstractions, and reproducible resource tables rather than broad quantum software development kit (SDK) coverage.
@@ -33,6 +34,7 @@ src/qc_compiler/
 ├── gates/         # primitive logical gate definitions
 ├── resources/     # logical resource estimation and expanded T-counts
 ├── simulation/    # exact simulation and equivalence support
+├── mitigation/    # classical readout-error mitigation
 └── compilation/   # early compiler-pass scaffolding
 
 benchmarks/        # reproducible benchmark scripts
@@ -141,6 +143,46 @@ This estimate does not decompose or mutate the circuit. It is a first-order acco
 
 See [`docs/technical_details.md`](docs/technical_details.md) for the full resource model, formulas, assumptions, and limitations.
 
+## Readout-error mitigation
+
+The workbench includes classical readout-error mitigation utilities for measured bitstring counts.
+
+Implemented mitigation support includes:
+
+- single-qubit readout mitigation
+- tensor-product multi-qubit mitigation for independent per-qubit assignment matrices
+- explicit bitstring ordering
+- linear inversion using known assignment matrices
+- clipping and renormalization of mitigated probabilities
+
+For tensor-product mitigation, bitstrings use display order `"q_{n-1}...q_1q_0"`, where the rightmost bit is qubit 0 and the least-significant bit.
+
+Example:
+
+```python
+import numpy as np
+
+from qc_compiler.mitigation import mitigate_single_qubit_readout
+
+
+assignment_matrix = np.array(
+    [
+        [0.9, 0.1],
+        [0.1, 0.9],
+    ],
+    dtype=float,
+)
+
+mitigated = mitigate_single_qubit_readout(
+    counts={"0": 820, "1": 180},
+    assignment_matrix=assignment_matrix,
+)
+```
+
+This is post-processing of classical measurement results. It does not model gate noise, decoherence, calibration fitting, or hardware execution.
+
+See [`docs/readout_mitigation_example.md`](docs/readout_mitigation_example.md) for a worked example.
+
 ## Benchmarks
 
 Benchmark scripts are included for the implemented primitive families:
@@ -206,11 +248,13 @@ python benchmarks/benchmark_cuccaro_adder.py
 | `src/qc_compiler/gates/` | Primitive gate definitions |
 | `src/qc_compiler/resources/` | Resource estimation and expanded T-counts |
 | `src/qc_compiler/simulation/` | Exact simulation and verification support |
+| `src/qc_compiler/mitigation/` | Classical readout-error mitigation |
 | `benchmarks/` | Reproducible benchmark scripts |
 | `tests/` | Unit, verification, and benchmark tests |
 | `docs/resource_model.md` | Current resource-model assumptions |
 | `docs/simulation_conventions.md` | Simulation indexing and conventions |
 | `docs/technical_details.md` | Detailed formulas, limitations, and future directions |
+| `docs/readout_mitigation_example.md` | Readout mitigation example and limitations |
 | `docs/benchmarks/` | Benchmark results and interpretation |
 
 ## Current limitations
@@ -222,7 +266,8 @@ It currently does not model:
 - physical qubits or error-correction codes
 - magic-state factories or distillation
 - routing, topology, or hardware scheduling
-- gate-level noise or calibration effects
+- gate-level noise, decoherence, or calibration fitting
+- correlated readout-error models
 - T-depth or explicit Clifford+T decomposition
 - wall-clock runtime
 
@@ -239,6 +284,7 @@ The current workbench includes:
 - Cuccaro-style modular addition
 - primitive logical resource estimation
 - Toffoli-expanded analytical T-counts
+- single-qubit and tensor-product readout-error mitigation
 - reproducible benchmarks and automated tests
 - documentation of assumptions and scaling behavior
 
