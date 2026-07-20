@@ -108,7 +108,7 @@ def build_multi_controlled_x(
         )
 
     if num_controls == 1:
-        operations = (
+        operations: tuple[Operation, ...] = (
             Operation(
                 gate=CNOT,
                 qubits=(controls[0], target),
